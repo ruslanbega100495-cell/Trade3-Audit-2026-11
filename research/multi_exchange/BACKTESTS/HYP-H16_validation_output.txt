@@ -1,0 +1,73 @@
+======================================================================
+HYP-H16 VALIDATION — frozen config (DECISION D-001 period allocation)
+======================================================================
+RESEARCH ONLY. TRADING_DISABLED. No live orders, no API keys.
+Dataset hash: e182346101e28d26 OK
+Warmup bars (2025-03, past data only): 186
+Validation bars [2025-04-01, 2025-10-01): 1098
+Frozen: N=12, vol-scaled, TARGET_VOL=0.2, LEVERAGE_CAP=2.0, VOL_WINDOW=20, MIN_VOL=0.05
+Costs: taker=0.00055 + slippage=0.0005 per leg (round-trip x2)
+Funding NOT modeled (identical to TRAIN cost model).
+
+N=12, VOL-SCALED, base costs (FROZEN CONFIG) (n=91, LONG=48, SHORT=43)
+  Period:                2025-04-01 -> 2025-09-30
+  Mean net return/trade: -0.1015%
+  Std:                   1.9417%
+  95% CI (t, df=90):    [-0.5059%, +0.3029%]
+  Sharpe (annualized):   -0.830
+  Max drawdown:          20.5358%
+  Total PnL (sum):       -9.2380%
+  Profit factor (net):   0.870
+  Win rate:              0.429
+
+N=12, VOL-SCALED, 2x costs (stress) (n=91, LONG=48, SHORT=43)
+  Period:                2025-04-01 -> 2025-09-30
+  Mean net return/trade: -0.2701%
+  Std:                   1.9465%
+  95% CI (t, df=90):    [-0.6755%, +0.1353%]
+  Sharpe (annualized):   -2.203
+  Max drawdown:          30.2187%
+  Total PnL (sum):       -24.5793%
+  Profit factor (net):   0.693
+  Win rate:              0.407
+
+N=24, VOL-SCALED, base costs (EXPLORATORY diagnostic) (n=45, LONG=26, SHORT=19)
+  Period:                2025-04-01 -> 2025-09-28
+  Mean net return/trade: -0.0382%
+  Std:                   2.6449%
+  95% CI (t, df=44):    [-0.8328%, +0.7564%]
+  Sharpe (annualized):   -0.229
+  Max drawdown:          12.6341%
+  Total PnL (sum):       -1.7193%
+  Profit factor (net):   0.962
+  Win rate:              0.356
+
+======================================================================
+TRAIN reference (from registry HYP-H16.yaml, 2024-01-01 -> 2025-04-01):
+{
+  "N12_vol_scaled": {
+    "n_trades": 225,
+    "mean_net_return_pct": 0.2246,
+    "sharpe_annualized": 1.577,
+    "max_drawdown_pct": 15.9131,
+    "total_pnl_pct": 50.5286,
+    "win_rate": 0.533
+  }
+}
+
+======================================================================
+VALIDATION EDGE CHECK (docs/VALIDATION_PROTOCOL.md):
+  expectancy>0                : FAIL
+  95% CI lower > 0            : FAIL
+  2x costs expectancy > 0     : FAIL
+  2x costs CI lower > 0       : FAIL
+
+  VERDICT: FAIL_VALIDATION
+======================================================================
+
+Raw output written: C:\Users\rusla\Trade\Trade3\research\multi_exchange\BACKTESTS\HYP-H16_validation_output.json
+
+NEXT STEPS:
+  1. VALIDATION PASS != edge proven. Next: walk-forward, then prospective holdout only.
+  2. Do NOT modify parameters based on this result.
+  3. Period 2025-04->2025-10 becomes USED after review (PERIOD_MAP).

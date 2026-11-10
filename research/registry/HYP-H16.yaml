@@ -1,0 +1,114 @@
+id: HYP-H16
+name: Vol-Normalized Time-Series Momentum — BTCUSDT H4
+date: 2026-10-25
+researcher: Ruslan
+status: REJECTED
+status_reason: "VALIDATION_FAIL (2026-11-08, period D-001): expectancy -0.1015%/trade net, CI covers zero, 2x-cost negative. No retuning per D-001."
+hypothesis: >
+  Cryptocurrency exhibits time-series momentum: past positive returns predict
+  continued positive returns over 2-4 day horizons. Vol-normalization (Moskowitz-Pedersen)
+  improves risk-adjusted performance by reducing position size during high-vol regimes.
+  H_null: E[net_return] = 0 for position = sign(return_N) × target_vol/realized_vol.
+differs_from:
+  HYP-K-001: >
+    K-001 tested binary MA crossover signal with fixed position size: rejected (p=0.497/0.913).
+    H16 tests: (1) return-sign signal (not price-level MA), (2) vol-scaled position (continuous),
+    (3) shorter formation windows (12/24 bars vs 20/50 bars). Mechanically different.
+data_hash: e182346101e28d26
+signal:
+  formation_bars_primary: 24
+  formation_bars_secondary: 12
+  vol_window: 20
+  target_vol: 0.20
+  leverage_cap: 2.0
+  entry: "open[t+1]"
+  exit: "open[t+1+N]"
+  rebalance: non-overlapping
+cost_model:
+  taker_fee_pct: 0.055
+  slippage_pct: 0.050
+split:
+  train: "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"
+primary_metrics: [mean_net_return, sharpe_annualized, max_drawdown, n_trades]
+results:
+  train:
+    N24_vol_scaled:
+      n_trades: 112
+      n_long: 61
+      n_short: 51
+      mean_net_return_pct: +0.2527
+      std_pct: 4.0434
+      sharpe_annualized: 0.992
+      max_drawdown_pct: 31.7245
+      total_pnl_pct: +28.3046
+      win_rate: 0.491
+      verdict: PROMISING
+    N24_baseline_no_vol_scaling:
+      n_trades: 112
+      mean_net_return_pct: +0.2318
+      std_pct: 5.2994
+      sharpe_annualized: 0.694
+      max_drawdown_pct: 39.7841
+      total_pnl_pct: +25.9626
+      win_rate: 0.491
+      verdict: PROMISING
+    N12_vol_scaled:
+      n_trades: 225
+      n_long: 120
+      n_short: 105
+      mean_net_return_pct: +0.2246
+      std_pct: 2.2606
+      sharpe_annualized: 1.577
+      max_drawdown_pct: 15.9131
+      total_pnl_pct: +50.5286
+      win_rate: 0.533
+      verdict: PROMISING
+    vol_scaling_improvement: "Sharpe 0.992 vs 0.694 (N=24), MaxDD 31.7% vs 39.8%"
+    run_date: 2026-10-25
+  validation:
+    period: "2025-04-01 / 2025-10-01"
+    allocated_by: DECISIONS/D-001
+    frozen_config: "N=12, vol-scaled, target_vol=0.20, leverage_cap=2.0, vol_window=20, min_vol=0.05"
+    dataset_hash: e182346101e28d26
+    warmup: "186 bars of 2025-03 (past data only, vol window warm-up)"
+    n_bars: 1098
+    ci_method: "t-distribution, df=n-1"
+    N12_frozen_base:
+      n_trades: 91
+      n_long: 48
+      n_short: 43
+      mean_net_return_pct: -0.1015
+      std_pct: 1.9417
+      ci95_pct: [-0.5059, 0.3029]
+      sharpe_annualized: -0.830
+      max_drawdown_pct: 20.5358
+      total_pnl_pct: -9.2380
+      profit_factor_net: 0.870
+      win_rate: 0.429
+    N12_frozen_cost2x:
+      n_trades: 91
+      mean_net_return_pct: -0.2701
+      ci95_pct: [-0.6755, 0.1353]
+      sharpe_annualized: -2.203
+      max_drawdown_pct: 30.2187
+      total_pnl_pct: -24.5793
+      profit_factor_net: 0.693
+      win_rate: 0.407
+    N24_exploratory_diagnostic:
+      n_trades: 45
+      mean_net_return_pct: -0.0382
+      ci95_pct: [-0.8328, 0.7564]
+      sharpe_annualized: -0.229
+      max_drawdown_pct: 12.6341
+      total_pnl_pct: -1.7193
+      profit_factor_net: 0.962
+      win_rate: 0.356
+      note: "diagnostic only, NOT used for selection"
+    train_comparison: "TRAIN N=12: mean +0.2246%, Sharpe 1.577, WR 0.533 -> VALIDATION sign flip"
+    verdict: FAIL_VALIDATION
+    report: research/multi_exchange/BACKTESTS/HYP-H16_VALIDATION.md
+    raw_output: research/multi_exchange/BACKTESTS/HYP-H16_validation_output.txt
+    run_date: 2026-11-08
+decision: PROMISING — all 3 variants positive net return post-costs. Best: N=12 vol-scaled (Sharpe=1.577, n=225). Vol-scaling consistently improves Sharpe and reduces drawdown. VALIDATION requires separate authorization.
+validation_decision: "FAIL_VALIDATION (2026-11-08) — REJECTED per D-001 consequences; period 2025-04->2025-10 becomes USED; no retuning allowed."

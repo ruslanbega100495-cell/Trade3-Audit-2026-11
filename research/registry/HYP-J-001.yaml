@@ -1,0 +1,83 @@
+id: HYP-J-001
+name: Mean Reversion / Bollinger Band Extremes — BTCUSDT H4 (Event Study)
+date: 2026-10-24
+researcher: Ruslan
+status: BACKTEST
+
+hypothesis: >
+  When BTCUSDT H4 price closes above the 2-standard-deviation Bollinger Band (N=20),
+  forward returns are negative (mean reversion). When price closes below, forward
+  returns are positive. H_null: E[direction_adjusted_return] = 0.
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4
+data_hash: e182346101e28d26
+data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+
+stationarity_note: >
+  Per RESEARCH_PROTOCOL.md, mean-reversion properties must be checked before testing
+  trading logic. The script computes lag-1 through lag-5 autocorrelation of 1-period
+  log returns on the TRAIN split. Negative lag-1 AC supports mean-reversion.
+  Results are logged but do not gate the event study run.
+
+signal_definition:
+  bollinger_period: 20
+  bollinger_k: 2.0
+  sma: "mean(close[t-19:t+1])  — N=20, uses current bar close"
+  std: "sample_std(close[t-19:t+1])"
+  upper_band: "sma[t] + 2.0 * std[t]"
+  lower_band: "sma[t] - 2.0 * std[t]"
+  short_event: "close[t] > upper_band[t]  → SHORT at open[t+1]"
+  long_event: "close[t] < lower_band[t]   → LONG at open[t+1]"
+  requires_warmup: 19  # first signal possible at bar index 19
+
+differs_from:
+  HYP-D: "HYP-D used ATR(14) below 25th percentile for compression; this uses Bollinger Band price extremes. Different signal family."
+  HYP-C: "HYP-C tested trend pullback continuation; this tests mean reversion from extremes. Opposite hypothesis."
+
+primary_set:
+  horizons: [4, 8, 16, 32]
+  test: one-sample t-test
+  correction: Holm-Bonferroni (4 tests), alpha=0.05
+  decision: any Holm-reject → PROMISING; all keep → REJECTED
+
+split:
+  train:      "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"  # SEALED
+  oos:        "2025-10-01 / 2026-07-01"  # SEALED
+  holdout:    "2026-07-01 / 2026-10-01"  # CONSUMED by HYP-E
+
+alpha: 0.05
+multiple_testing_correction: Holm-Bonferroni (4 primary tests)
+minimum_events: 5
+
+limitations:
+  - Gross returns only; no fees, no funding
+  - Bollinger Band uses N=20 SMA/std; different N is a new hypothesis
+  - Log-return autocorrelation ≠ Bollinger Band signal edge; these are separate tests
+
+results:
+  train:
+    split_candles: 2736
+    n_events_total: 330
+    n_short: 169
+    n_long: 161
+    autocorrelation_log_returns:
+      lag1: -0.033887
+      lag2: +0.027812
+      lag3: -0.021738
+      lag4: +0.006551
+      lag5: -0.012495
+    stationarity_note: "Lag-1 AC slightly negative (-0.034) — weak mean-reversion signal in raw returns, not significant."
+    horizons:
+      H4:  {n_included: 147, mean_pct: -0.1336, t: -0.741, p: 0.458520, holm: keep}
+      H8:  {n_included: 116, mean_pct: -0.1886, t: -0.632, p: 0.527659, holm: keep}
+      H16: {n_included:  96, mean_pct: -0.3326, t: -0.680, p: 0.496642, holm: keep}
+      H32: {n_included:  63, mean_pct:  0.0767, t:  0.106, p: 0.915638, holm: keep}
+  validation: null
+  oos: null
+  holdout: null
+
+decision: REJECTED
+rejection_reason: "All 4 Holm-corrected tests keep H_null on TRAIN split. Lag-1 AC=-0.034 is consistent with very weak mean-reversion in raw returns but not exploitable via BB extreme signals."

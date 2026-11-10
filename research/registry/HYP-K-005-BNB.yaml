@@ -1,0 +1,72 @@
+id: HYP-K-005-BNB
+name: Multi-Candle Sweep + Structure Break — BNBUSDT H4 (Cross-Symbol Extension)
+date: 2026-10-25
+researcher: Ruslan
+status: BACKTEST
+parent_hypothesis: HYP-K-005
+
+note: >
+  Cross-symbol replication test. Same parameters as HYP-K-005 (N=20, confirm=20).
+  Exploratory. Registered before running on the data.
+
+hypothesis: >
+  The sweep+structure signal that was tested on BTCUSDT generalizes to BNBUSDT.
+  H_null: E[direction_adjusted_return] = 0.
+
+symbol: BNBUSDT
+data_hash: efc2e0f10bdf2495
+data_file: research/datasets/raw/bybit/BNBUSDT/H4/2024-01-01_2026-09-30.json
+timeframe: H4
+category: linear
+
+signal_parameters:
+  sweep_lookback_N: 20
+  confirm_window: 20
+  entry: "open[lh+3]"
+  horizons: [4, 8, 16, 32]
+
+primary_set:
+  horizons: [4, 8, 16, 32]
+  correction: Holm-Bonferroni
+  decision: any Holm-reject -> PROMISING; all keep -> REJECTED
+
+split:
+  train: "2024-01-01 / 2025-04-01"
+
+results:
+  train:
+    n_events_total: 166
+    n_short: 87
+    n_long: 79
+    horizons:
+      - H: 4
+        n_included: 111
+        n_excluded: 55
+        mean_dir_return_pct: 0.4015
+        t_stat: 1.835
+        p_value: 0.066436
+        holm_reject: false
+      - H: 8
+        n_included: 98
+        n_excluded: 68
+        mean_dir_return_pct: 0.3053
+        t_stat: 0.992
+        p_value: 0.321104
+        holm_reject: false
+      - H: 16
+        n_included: 79
+        n_excluded: 87
+        mean_dir_return_pct: -0.0250
+        t_stat: -0.042
+        p_value: 0.966550
+        holm_reject: false
+      - H: 32
+        n_included: 57
+        n_excluded: 109
+        mean_dir_return_pct: 0.7434
+        t_stat: 0.662
+        p_value: 0.507997
+        holm_reject: false
+    primary_decision: FAILS_TO_REJECT
+
+decision: FAILS_TO_REJECT

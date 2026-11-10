@@ -1,0 +1,30 @@
+id: HYP-M-008
+name: Cross-Exchange Funding Dispersion — ALT perps (Bybit vs KuCoin/HTX)
+date: 2026-11-10
+researcher: Kimi research team
+status: REGISTERED
+status_reason: "Registered BEFORE data collection and analysis. Next-stage candidate; run only after downloading alt funding histories."
+hypothesis: >
+  Funding rates of ALT USDT perps (e.g. SOL, DOGE, XRP) differ across venues
+  more than BTC (thinner MM integration). If mean |daily funding spread|
+  between Bybit and KuCoin/HTX for a basket of alts exceeds ~10 bps/day with
+  sign persistence, a delta-neutral cross-venue harvest is viable.
+  H_null: alt funding dispersion <= BTC-level (1.7-2.8 bps/day) -> dead end.
+differs_from:
+  HYP-M-005: "M-005 tested BTC (REJECTED, 1.7-2.8 bps/day). M-008 tests ALTS where funding
+    is structurally more dispersed; explicit falsification against the BTC baseline."
+  HYP-L-001: "L-001 = cross-sectional basket on Bybit only (paused). M-008 = cross-venue
+    pairs on the same asset."
+data: >
+  To download: Bybit alt funding 2022-11->2025-04 (24 symbols already local);
+  KuCoin + HTX alt funding histories (endpoints verified for BTC; symbols per
+  venue listing). Unit: daily funding sums (venue mark phases differ).
+success_criteria:
+  - ">= 5 alt pairs with >= 300 aligned days"
+  - "mean |daily spread| > 10 bps AND sign persistence >= 0.7 on >= 3 pairs"
+  - "else REJECT fast (single descriptive pass, TRAIN 2022-11->2025-04)"
+cost_model: {taker_fee_pct: 0.05, slippage_pct: 0.05, note: "alt slippage likely worse; sensitivity at 2x"}
+split: {train: "2022-11-01 / 2025-04-01", note: "exploratory single pass; no clean confirmatory period remains"}
+results: null
+decision: null
+rejection_reason: null

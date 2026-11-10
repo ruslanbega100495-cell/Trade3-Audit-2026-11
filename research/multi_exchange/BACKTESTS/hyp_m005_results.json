@@ -1,0 +1,108 @@
+{
+  "window": [
+    "2024-01-01",
+    "2025-04-01"
+  ],
+  "cost_floor_bps": 10.0,
+  "unit": "daily funding sum (bps/day); 3 marks/day/venue; kucoin marks offset 4h (04/12/20 UTC)",
+  "coverage": {
+    "bybit": {
+      "file": "research/datasets/raw/bybit/BTCUSDT/funding/2024-01-01_2026-09-30.json",
+      "n_marks": 3012,
+      "n_days_full": 1004,
+      "window_days": 456,
+      "dups": 0
+    },
+    "kucoin": {
+      "file": "research/datasets/raw/kucoin/BTCUSDT/funding/2024-01-01_2026-11-09.json",
+      "n_marks": 3130,
+      "n_days_full": 1043,
+      "window_days": 456,
+      "dups": 0
+    },
+    "htx": {
+      "file": "research/datasets/raw/htx/BTCUSDT/funding/2024-01-01_2026-11-09.json",
+      "n_marks": 3131,
+      "n_days_full": 1042,
+      "window_days": 456,
+      "dups": 0
+    }
+  },
+  "pairs": {
+    "bybit-kucoin": {
+      "pair": "bybit-kucoin",
+      "n_days": 456,
+      "mean_spread_bps_day": -1.11,
+      "std_bps_day": 3.905,
+      "ci95": [
+        -1.469,
+        -0.752
+      ],
+      "mean_abs_bps_day": 2.793,
+      "p95_abs_bps_day": 8.86,
+      "share_days_gt_10bps": 0.0461,
+      "sign_persistence": 0.7385,
+      "n_flips": 119,
+      "autocorr_lag1": 0.6609,
+      "half_life_days": 2.04,
+      "adf_ar1_proxy_pvalue": 0.0,
+      "economics_bps_per_window": {
+        "gross_if_follow_sign": 1273.5,
+        "flip_cost_total": 1190.0,
+        "net_if_follow_sign": 83.5,
+        "avg_net_bps_day": 0.183
+      },
+      "direction_note": "positive = bybit funding higher (short bybit / long kucoin harvests)"
+    },
+    "bybit-htx": {
+      "pair": "bybit-htx",
+      "n_days": 456,
+      "mean_spread_bps_day": -0.045,
+      "std_bps_day": 2.632,
+      "ci95": [
+        -0.287,
+        0.196
+      ],
+      "mean_abs_bps_day": 1.714,
+      "p95_abs_bps_day": 5.203,
+      "share_days_gt_10bps": 0.0088,
+      "sign_persistence": 0.6593,
+      "n_flips": 155,
+      "autocorr_lag1": 0.4155,
+      "half_life_days": 1.19,
+      "adf_ar1_proxy_pvalue": 0.0,
+      "economics_bps_per_window": {
+        "gross_if_follow_sign": 781.6,
+        "flip_cost_total": 1550.0,
+        "net_if_follow_sign": -768.4,
+        "avg_net_bps_day": -1.685
+      },
+      "direction_note": "positive = bybit funding higher (short bybit / long htx harvests)"
+    },
+    "kucoin-htx": {
+      "pair": "kucoin-htx",
+      "n_days": 456,
+      "mean_spread_bps_day": 1.065,
+      "std_bps_day": 4.257,
+      "ci95": [
+        0.674,
+        1.455
+      ],
+      "mean_abs_bps_day": 2.809,
+      "p95_abs_bps_day": 10.533,
+      "share_days_gt_10bps": 0.0526,
+      "sign_persistence": 0.7319,
+      "n_flips": 122,
+      "autocorr_lag1": 0.706,
+      "half_life_days": 2.35,
+      "adf_ar1_proxy_pvalue": 0.0,
+      "economics_bps_per_window": {
+        "gross_if_follow_sign": 1280.7,
+        "flip_cost_total": 1220.0,
+        "net_if_follow_sign": 60.7,
+        "avg_net_bps_day": 0.133
+      },
+      "direction_note": "positive = kucoin funding higher (short kucoin / long htx harvests)"
+    }
+  }
+}

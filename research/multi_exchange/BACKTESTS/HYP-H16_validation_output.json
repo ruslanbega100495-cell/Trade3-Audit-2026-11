@@ -1,0 +1,84 @@
+{
+  "config": {
+    "N": 12,
+    "target_vol": 0.2,
+    "leverage_cap": 2.0,
+    "vol_window": 20,
+    "min_vol": 0.05,
+    "taker_fee": 0.00055,
+    "slippage": 0.0005,
+    "validation_start": "2025-04-01",
+    "validation_end": "2025-10-01",
+    "warmup_start": "2025-03-01",
+    "dataset_hash": "e182346101e28d26"
+  },
+  "results": {
+    "N12_frozen_base": {
+      "label": "N=12, VOL-SCALED, base costs (FROZEN CONFIG)",
+      "n_trades": 91,
+      "n_long": 48,
+      "n_short": 43,
+      "mean_net_return_pct": -0.1015,
+      "std_pct": 1.9417,
+      "ci95_t_dist": [
+        -0.5059,
+        0.3029
+      ],
+      "sharpe_annualized": -0.83,
+      "max_drawdown_pct": 20.5358,
+      "total_pnl_pct": -9.238,
+      "profit_factor_net": 0.87,
+      "win_rate": 0.429,
+      "first_entry": "2025-04-01T04:00:00+00:00",
+      "last_exit": "2025-09-30T04:00:00+00:00"
+    },
+    "N12_frozen_cost2x": {
+      "label": "N=12, VOL-SCALED, 2x costs (stress)",
+      "n_trades": 91,
+      "n_long": 48,
+      "n_short": 43,
+      "mean_net_return_pct": -0.2701,
+      "std_pct": 1.9465,
+      "ci95_t_dist": [
+        -0.6755,
+        0.1353
+      ],
+      "sharpe_annualized": -2.203,
+      "max_drawdown_pct": 30.2187,
+      "total_pnl_pct": -24.5793,
+      "profit_factor_net": 0.693,
+      "win_rate": 0.407,
+      "first_entry": "2025-04-01T04:00:00+00:00",
+      "last_exit": "2025-09-30T04:00:00+00:00"
+    },
+    "N24_exploratory": {
+      "label": "N=24, VOL-SCALED, base costs (EXPLORATORY diagnostic)",
+      "n_trades": 45,
+      "n_long": 26,
+      "n_short": 19,
+      "mean_net_return_pct": -0.0382,
+      "std_pct": 2.6449,
+      "ci95_t_dist": [
+        -0.8328,
+        0.7564
+      ],
+      "sharpe_annualized": -0.229,
+      "max_drawdown_pct": 12.6341,
+      "total_pnl_pct": -1.7193,
+      "profit_factor_net": 0.962,
+      "win_rate": 0.356,
+      "first_entry": "2025-04-01T04:00:00+00:00",
+      "last_exit": "2025-09-28T04:00:00+00:00"
+    }
+  },
+  "train_reference": {
+    "N12_vol_scaled": {
+      "n_trades": 225,
+      "mean_net_return_pct": 0.2246,
+      "sharpe_annualized": 1.577,
+      "max_drawdown_pct": 15.9131,
+      "total_pnl_pct": 50.5286,
+      "win_rate": 0.533
+    }
+  }
+}

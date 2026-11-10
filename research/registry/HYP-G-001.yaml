@@ -1,0 +1,96 @@
+id: HYP-G-001
+name: Funding Rate Extreme Reversal — BTCUSDT H4 (Event Study)
+date: 2026-10-25
+researcher: Ruslan
+status: BACKTEST
+
+note: >
+  HYP-G in RESEARCH_PROTOCOL.md specifies only "Funding + OI" with no signal rules.
+  This is a researcher-formalized operationalization. Not the original author's rules.
+  Registered before any data was examined for signal quality.
+
+hypothesis: >
+  When BTCUSDT 8h funding rate is in the top 10% of its rolling 400-period history
+  (extreme positive), forward H4 returns favor SHORT. Bottom 10% -> favor LONG.
+  H_null: E[direction_adjusted_return] = 0.
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4 (entry aligned to H4 candle opens)
+funding_data_hash: 5b8057d195a7c8a9
+funding_data_file: research/datasets/raw/bybit/BTCUSDT/funding/2024-01-01_2026-09-30.json
+ohlcv_data_hash: e182346101e28d26
+ohlcv_data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+
+signal_definition:
+  funding_interval: 8h
+  rolling_window: 400  # funding rate observations (~133 days lookback)
+  short_signal: "funding_rate[t] >= quantile(funding_rate[t-400:t], 90)"
+  long_signal: "funding_rate[t] <= quantile(funding_rate[t-400:t], 10)"
+  entry_candle: "first H4 candle with open_time >= funding_timestamp"
+  entry_price: "open of entry_candle"
+  exit_price: "open of entry_candle + H"
+  direction_adjusted_return: "direction * (exit - entry) / entry"
+
+primary_set:
+  horizons: [4, 8, 16, 32]
+  test: one-sample t-test
+  correction: Holm-Bonferroni (4 tests), alpha=0.05
+  decision: any Holm-reject -> PROMISING; all keep -> REJECTED
+
+split:
+  train:      "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"
+  oos:        "2025-10-01 / 2026-07-01"
+  holdout:    "2026-07-01 / 2026-10-01"
+
+alpha: 0.05
+minimum_events: 5
+multiple_testing_correction: Holm-Bonferroni (4 primary tests)
+
+limitations:
+  - Gross returns only
+  - 8h funding aligned to H4 open — 1 funding event may correspond to multiple H4 decisions
+  - rolling_window=400 is pre-registered; changing it = new hypothesis
+  - OI data available but not included in primary spec (too complex to combine)
+
+results:
+  train:
+    n_events_total: 318
+    n_short: 194
+    n_long: 124
+    horizons:
+      - H: 4
+        n_included: 149
+        n_excluded: 169
+        mean_dir_return_pct: -0.2213
+        t_stat: -1.249
+        p_value: 0.211810
+        holm_reject: false
+      - H: 8
+        n_included: 107
+        n_excluded: 211
+        mean_dir_return_pct: -0.1781
+        t_stat: -0.608
+        p_value: 0.543123
+        holm_reject: false
+      - H: 16
+        n_included: 69
+        n_excluded: 249
+        mean_dir_return_pct: -0.1415
+        t_stat: -0.282
+        p_value: 0.777770
+        holm_reject: false
+      - H: 32
+        n_included: 42
+        n_excluded: 276
+        mean_dir_return_pct: -0.0681
+        t_stat: -0.069
+        p_value: 0.944819
+        holm_reject: false
+    primary_decision: FAILS_TO_REJECT
+  validation: null
+  ois: null
+  holdout: null
+
+decision: FAILS_TO_REJECT

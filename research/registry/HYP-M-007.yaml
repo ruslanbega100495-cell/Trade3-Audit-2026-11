@@ -1,0 +1,35 @@
+id: HYP-M-007
+name: Tier-2 Turnover-Share Rotation — BTCUSDT H1, 6 venues
+date: 2026-11-10
+researcher: Kimi research team (idea AGENT-09/S-08)
+status: REJECTED
+status_reason: "Registered BEFORE analysis. 2026-11-10: REJECTED (TRAIN) — non-overlapping t=2.4 < 3. Borderline; sole prospective re-test candidate."
+hypothesis: >
+  The share of BTC perp turnover happening on tier-2 venues (kucoin/htx/weex/bingx)
+  vs leaders (bybit/okx), when elevated (retail froth), predicts short-horizon
+  forward BTC returns negatively (retail chase -> local top) or positively
+  (attention -> continuation). H_null: no monotonic relation between tier2-share
+  z-score and forward returns at 1-24h horizons after costs.
+differs_from: "No prior hypothesis tested cross-venue turnover composition. M-001 tested price levels; M-006 tested OI change."
+data: "H1 klines 6 venues 2024-04->2026-11 (hashes in DATASETS/DATASETS.md). Turnover = quote volume per bar."
+signal:
+  type: "exploratory panel: tier2_share[t] = sum(turnover tier2)/sum(turnover all); z-score rolling 60d; quartiles -> forward leader returns 1/4/24h; Welch t Q4 vs Q1; Spearman"
+  kill_criterion: "|t| < 3 at every horizon or contrast < 2x round trip (42 bps for 4h+ holds)"
+cost_model: {taker_fee_pct: 0.055, slippage_pct: 0.05}
+split: {train: "2024-04-01 / 2025-04-01", note: "exploratory single pass; confirmatory only prospective"}
+results:
+  study_type: "exploratory quartile panel (TRAIN, overlapping + non-overlapping 24h check)"
+  run_date: 2026-11-10
+  n_bars: 5832
+  non_overlapping_24h: {n: 243, q4_minus_q1_bps: 112.9, t: 2.4, spearman: 0.141,
+    quartile_means_bps: {Q1: -45.6, Q2: 21.6, Q3: 15.1, Q4: 67.3}}
+  overlapping_note: "t=7.11 at 24h is an overlap artifact; never use overlapping forward returns for t-tests"
+  kill_criterion_met: "t=2.4 < 3 -> REJECTED as confirmed signal"
+  report: research/multi_exchange/BACKTESTS/HYP-M-007_turnover_share.md
+  raw_output: research/multi_exchange/BACKTESTS/hyp_m007_results.json
+decision: >
+  REJECTED (TRAIN) per kill criterion. Sole borderline candidate of the cycle:
+  attention-momentum via tier-2 turnover share, 24h horizon. Eligible for
+  prospective re-test under a NEW pre-registered hypothesis on post-2026-10
+  data (needs ~5 months of accumulated volume data first).
+rejection_reason: "t=2.4 < 3 kill threshold; data-mined heuristic origin; no independent historical period"

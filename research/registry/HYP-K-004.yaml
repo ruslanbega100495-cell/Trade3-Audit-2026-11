@@ -1,0 +1,75 @@
+id: HYP-K-004
+name: ATR Wave Exhaustion Reversal — BTCUSDT H4 (Event Study)
+date: 2026-10-24
+researcher: Ruslan
+status: BACKTEST
+
+hypothesis: >
+  When BTCUSDT H4 price has moved 80% or more of ATR(14) from its 20-bar rolling
+  close minimum (for upward waves) or maximum (for downward waves), forward returns
+  favor REVERSAL (against the wave direction).
+  H_null: E[direction_adjusted_return] = 0.
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4
+data_hash: e182346101e28d26
+data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+
+signal_definition:
+  atr_period: 14
+  atr_smoothing: "Wilder (alpha=1/14): atr[t] = atr[t-1]*(13/14) + tr[t]*(1/14)"
+  atr_seed: "mean(true_range[0:14]) for warmup"
+  wave_lookback_N: 20
+  short_signal: "close[t] - min(close[t-20:t]) >= 0.80 * atr[t]"
+  long_signal:  "max(close[t-20:t]) - close[t] >= 0.80 * atr[t]"
+  entry: "open[t+1]"
+  direction: "SHORT (-1) when short_signal, LONG (+1) when long_signal"
+  warmup_bars: 33  # max(20, 14) = 20 + seed needed = t>=33 for first valid signal
+
+differs_from:
+  HYP-D: >
+    HYP-D: ATR(14)/close ratio below 25th percentile of 50-bar lookback → COMPRESSION state → expansion signal.
+    HYP-K-004: price has moved 80%+ of ATR(14) from 20-bar rolling minimum → EXHAUSTION of wave → reversal.
+    HYP-D detects quiet markets and bets on breakout; HYP-K-004 detects extended moves and bets on reversal.
+    Mechanistically opposite hypotheses.
+
+primary_set:
+  horizons: [4, 8, 16, 32]
+  test: one-sample t-test
+  correction: Holm-Bonferroni (4 tests), alpha=0.05
+  decision: any Holm-reject → PROMISING; all keep → REJECTED
+
+split:
+  train:      "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"  # SEALED
+  oos:        "2025-10-01 / 2026-07-01"  # SEALED
+  holdout:    "2026-07-01 / 2026-10-01"  # CONSUMED by HYP-E
+
+alpha: 0.05
+minimum_events: 5
+multiple_testing_correction: Holm-Bonferroni (4 primary tests)
+
+limitations:
+  - Gross returns only
+  - 0.80 threshold is pre-registered; adjusting it constitutes a new hypothesis
+  - ATR(14) warmup uses simple mean for first 14 bars (standard practice)
+
+results:
+  train:
+    split_candles: 2736
+    n_events_total: 3599
+    n_short: 1943
+    n_long: 1656
+    horizons:
+      H4:  {n_included: 540, mean_pct: -0.0839, t: -0.865, p: 0.386914, holm: keep}
+      H8:  {n_included: 300, mean_pct: -0.0783, t: -0.454, p: 0.649934, holm: keep}
+      H16: {n_included: 158, mean_pct: -0.4847, t: -1.279, p: 0.200896, holm: keep}
+      H32: {n_included:  81, mean_pct: -1.2553, t: -1.866, p: 0.062072, holm: keep}
+    note: "H32 nominal p=0.062, Holm threshold=0.0125 (4 tests) — does not reject. High event frequency (3599 raw) due to permissive threshold; non-overlapping rule reduces drastically."
+  validation: null
+  oos: null
+  holdout: null
+
+decision: REJECTED
+rejection_reason: "All 4 Holm-corrected tests keep H_null on TRAIN split. H32 p=0.062 is borderline but does not survive Holm correction (threshold=0.0125 for smallest p)."

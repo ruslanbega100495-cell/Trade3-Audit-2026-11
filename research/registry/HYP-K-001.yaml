@@ -1,0 +1,181 @@
+id: HYP-K-001
+name: MA Crossover — BTC H4 Direction Prediction (Event Study)
+date: 2026-10-23
+researcher: Ruslan
+status: BACKTEST
+
+# -----------------------------------------------------------------------
+# RESEARCH TYPE: EVENT STUDY — not a trading strategy backtest.
+# Positive result proves signal predicts direction but does NOT prove
+# net-profitable trading after fees, funding, slippage, and adverse
+# selection. A separate trading strategy registration is required before
+# any live/paper execution.
+# -----------------------------------------------------------------------
+
+hypothesis: >
+  SMA crossover signals on BTC/USDT H4 have directional predictive power:
+  after a golden cross (fast SMA crosses slow SMA upward), the next H candles
+  tend to produce positive direction-adjusted returns; after a death cross
+  (fast crosses slow downward), the same. H_null: E[direction_adjusted_return] = 0.
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4
+data_hash: e182346101e28d26
+data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+
+# -----------------------------------------------------------------------
+# EXACT DEFINITIONS (pre-registered, must not change after seeing results)
+# -----------------------------------------------------------------------
+
+signal_definition:
+  signal_candle: close[t]          # crossover detected on this candle's close
+  entry_ref_price: open[t+1]       # reference price for entry (no execution model)
+  exit_ref_price: "open[t+1+H]"   # reference price for exit at horizon H
+
+return_definition:
+  golden_cross: direction = LONG  (+1)
+  death_cross:  direction = SHORT (-1)
+  raw_return: "(open[t+1+H] - open[t+1]) / open[t+1]"
+  direction_adjusted_return: "direction * raw_return"
+  interpretation: >
+    Positive direction_adjusted_return = price moved in the predicted direction.
+    Both golden and death cross observations are pooled; a single mean test
+    covers both signal types simultaneously.
+
+overlapping_window_rule: >
+  For each horizon H, if two signal times t_i < t_j satisfy t_j < t_i + H + 1,
+  only t_i is included. This rule is applied per-horizon before any calculations.
+  A signal excluded at H=32 may still be included at H=8 (separate filtering per H).
+
+boundary_rule: >
+  Signals within H candles of the split boundary are excluded: an event at time t
+  is included only if t+1+H <= last_index_of_split. This prevents lookahead across
+  splits.
+
+# -----------------------------------------------------------------------
+# PRIMARY TESTS (pre-specified; determines hypothesis status)
+# -----------------------------------------------------------------------
+
+primary_set:
+  sma_params: [20, 50]          # fast SMA period, slow SMA period
+  horizons: [8, 16]             # H4 candles: H=8 → 32h, H=16 → 64h
+  test: one-sample t-test (direction_adjusted_return, H_null: mean=0)
+  correction: Holm-Bonferroni on 2 primary tests (alpha=0.05)
+  decision_threshold: any primary test passes Holm → PROMISING; all fail → REJECTED
+
+# -----------------------------------------------------------------------
+# EXPLORATORY SET (reported but not used for primary decision)
+# -----------------------------------------------------------------------
+
+exploratory_set:
+  - sma_params: [20, 50]; horizons: [4, 32]
+  - sma_params: [35, 195]; horizons: [4, 8, 16, 32]
+  note: >
+    Exploratory results are labeled as such and not used to update
+    hypothesis status. They may motivate new pre-registered hypotheses.
+
+# -----------------------------------------------------------------------
+# DATA SPLITS
+# -----------------------------------------------------------------------
+
+split:
+  train:      "2024-01-01 / 2025-04-01"    # ~1460 H4 candles
+  validation: "2025-04-01 / 2025-10-01"    # SEALED — do not use for parameter tuning
+  oos:        "2025-10-01 / 2026-07-01"    # SEALED — do not use until validation passes
+  holdout:    "2026-07-01 / 2026-10-01"    # CONSUMED by HYP-E — not a fresh holdout
+
+holdout_note: >
+  The 2026-07-01 / 2026-10-01 holdout was consumed by HYP-E (rejected, 0/8 positive
+  cells). It must NOT be presented as an untouched holdout for HYP-K-001.
+
+primary_decision_split: train
+
+# -----------------------------------------------------------------------
+# STATISTICAL DETAILS
+# -----------------------------------------------------------------------
+
+alpha: 0.05
+multiple_testing_correction: Holm-Bonferroni (primary set only, 2 tests)
+
+null_hypothesis: >
+  For each primary (sma_set, horizon) combination:
+  H_null: E[direction_adjusted_return] = 0
+  H_alt:  E[direction_adjusted_return] > 0
+
+test_statistic: one-sample t-statistic on direction_adjusted_return values
+minimum_events: 5  # skip test if fewer than 5 non-overlapping events
+
+# -----------------------------------------------------------------------
+# EVENT STUDY LIMITATIONS (explicit)
+# -----------------------------------------------------------------------
+
+limitations:
+  - Gross returns only: no taker fees (~5.5 bps/leg on Bybit USDT perp), no funding
+  - Open[t+1] as entry assumes instant fill at open — unrealistic for any real order
+  - Funding rate drain on LONG positions: ~0.01%/8h = ~0.45%/month is not included
+  - No adverse selection, no slippage, no bid-ask spread cost
+  - Directional edge ≠ profitable strategy; a separate strategy registration needed
+
+# -----------------------------------------------------------------------
+# RESULTS (filled after runs)
+# -----------------------------------------------------------------------
+
+results:
+  train:
+    run_date: "2026-10-25"
+    data_hash: "e182346101e28d26"
+    n_candles_split: 2736
+    split_range: "2024-01-01 to 2025-03-31"
+    n_events_total: 63
+    n_golden_cross: 31
+    n_death_cross: 32
+    primary_set:
+      SMA_20_50:
+        H8:
+          n_included: 60
+          n_excluded: 3
+          mean_dir_return_pct: 0.2457
+          std_pct: 2.8028
+          t_stat: 0.679
+          p_value: 0.497117
+          holm_reject: false
+        H16:
+          n_included: 53
+          n_excluded: 10
+          mean_dir_return_pct: 0.0679
+          std_pct: 4.5248
+          t_stat: 0.1093
+          p_value: 0.912957
+          holm_reject: false
+    exploratory_set:
+      SMA_20_50_additional:
+        H4:  {n_included: 61, mean_pct:  0.1694, t:  0.511, p: 0.609440}
+        H32: {n_included: 42, mean_pct: -0.9987, t: -0.984, p: 0.325298}
+      SMA_35_195:
+        note: "20 crossovers in TRAIN (10 golden, 10 death). Negative across all horizons."
+        H4:  {n_included: 18, mean_pct: -0.7009, t: -1.728, p: 0.084041}
+        H8:  {n_included: 17, mean_pct: -1.3657, t: -1.646, p: 0.099752}
+        H16: {n_included: 17, mean_pct: -1.0119, t: -0.940, p: 0.346989}
+        H32: {n_included: 15, mean_pct: -0.9973, t: -0.623, p: 0.533029}
+    primary_decision: "FAILS_TO_REJECT_H_null"
+    note: >
+      SMA(20,50): 63 crossovers in TRAIN. Primary tests at H=8 and H=16 both fail
+      to reject H_null (p=0.497, p=0.913). Holm threshold=0.025. H=32 exploratory
+      shows negative return (-1.0%). SMA(35,195): only 20 crossovers (borderline n),
+      all horizons show consistent negative returns (-0.7% to -1.4%), none significant.
+      Academic evidence (Deprez & Frommel 2024) was for Bitcoin SPOT with different
+      cost model and study period. On BTCUSDT H4 perpetuals 2024-2025, MA crossover
+      family shows no directional predictive power.
+  validation: null
+  oos: null
+  holdout: null   # DO NOT RUN — consumed
+
+decision: REJECTED
+rejection_reason: >
+  Both primary tests (SMA(20,50), H=8 and H=16) fail to reject H_null after
+  Holm-Bonferroni correction. p=0.497 (H=8) and p=0.913 (H=16), both far above
+  Holm threshold 0.025. Exploratory SMA(35,195) shows consistently negative
+  direction-adjusted returns across all horizons. No evidence of MA crossover
+  directional edge on BTCUSDT H4 perpetuals (TRAIN 2024-01-01 to 2025-04-01).
+  TRAIN result only; VALIDATION not authorized.

@@ -1,0 +1,62 @@
+id: HYP-M-005
+name: Cross-Exchange Funding Rate Dispersion — historical, BTC perp, Bybit/KuCoin/HTX
+date: 2026-11-09
+researcher: Kimi research team
+status: BACKTEST
+status_reason: "Registered BEFORE analysis (trade3 protocol). Historical test on full funding histories (Bybit/KuCoin/HTX)."
+hypothesis: >
+  Funding rates for the same asset differ persistently across exchanges
+  (different MM populations, margin currencies, formulas). A delta-neutral
+  position (short perp on the high-funding venue + long perp on the
+  low-funding venue, equal notional) harvests the funding spread.
+  H_null: E[funding_spread] <= round-trip cost (10 bps per 8h position change)
+  OR the spread is non-stationary with half-life > 7 days (no reliable harvest).
+differs_from:
+  HYP-H15: >
+    H15 tested BTC carry TIMING on a single venue (directional thresholds on
+    Bybit funding alone): rejected (Sharpe -4.17). M-005 is cross-venue
+    RELATIVE funding, dollar-neutral by construction, no directional BTC exposure.
+  HYP-L-001: >
+    L-001 is cross-SECTIONAL funding basket across ~25 symbols on Bybit only
+    (paused experiment, not to be resumed). M-005 is cross-VENUE dispersion of
+    a single asset (BTC). Different signal, different risk.
+  HYP-M-003: >
+    M-003 is the same mechanism but on prospective WS data (Bybit/OKX only,
+    accumulating since 2026-11-09). M-005 uses historical full funding series
+    from Bybit/KuCoin/HTX, which exist since 2020/2022 — enables a real
+    statistical test NOW. M-003 stays the live-data arm; M-005 is the
+    historical arm of the same research question.
+data: >
+  Funding histories: Bybit BTCUSDT (local, 2024-01-01->2026-09-30,
+  research/datasets/raw/bybit/BTCUSDT/funding/2024-01-01_2026-09-30.json,
+  hash 5b8057d195a7c8a9); KuCoin XBTUSDTM (to download, full since 2020-03);
+  HTX BTC-USDT (to download, full since 2020-10). Period under test:
+  2024-01-01 -> 2025-04-01 (TRAIN window shared with other K/G/H studies;
+  exploratory-descriptive here since M-003/M-005 confirmatory gate is the
+  prospective arm).
+signal:
+  type: descriptive panel study
+  construction: "for each 8h funding mark t: spread_ij(t) = funding_i(t) - funding_j(t)"
+  pairs: [bybit-kucoin, bybit-htx, kucoin-htx]
+  metrics: [mean_spread_bps, std, share_gt_10bps, share_gt_20bps, ADF stationarity,
+            spread autocorrelation, half-life, conditional next-spread given current]
+  cost_floor_bps: 10   # taker round trip 5+5 bps; position flips only when spread sign flips
+cost_model:
+  taker_fee_pct: 0.05   # per side
+  slippage_pct: 0.05    # per side
+  funding_paid_or_received: modeled from actual rates in data
+success_criteria:
+  - ">= 200 aligned funding marks per pair in test window"
+  - "mean |spread| > 10 bps/8h AND 95% CI excludes 0 in the economically favorable direction"
+  - "spread stationary (ADF p < 0.05) with half-life < 7 days"
+  - "sign of spread persistent >= 60% of consecutive marks (low flip frequency)"
+split:
+  train: "2024-01-01 / 2025-04-01"
+  note: >
+    Single descriptive pass over TRAIN window. Any confirmatory version must be
+    pre-registered separately and validated on post-2026-10-01 prospective data
+    (the M-003 arm) — historical remainder 2025-04->2026-09 stays untouched by
+    selection decisions made here.
+results: null
+decision: null
+rejection_reason: null

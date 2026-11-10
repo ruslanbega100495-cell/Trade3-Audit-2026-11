@@ -1,0 +1,71 @@
+id: HYP-K-003
+name: Fair Value Gap Fill — BTCUSDT H4 (Event Study)
+date: 2026-10-24
+researcher: Ruslan
+status: BACKTEST
+
+hypothesis: >
+  After a Fair Value Gap (3-candle pattern where high[t] < low[t-2] for bearish
+  or low[t] > high[t-2] for bullish) forms, when price re-enters the gap zone
+  within 50 bars, forward returns favor gap fill (continuation in the direction
+  the gap originally formed). H_null: E[direction_adjusted_return] = 0.
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4
+data_hash: e182346101e28d26
+data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+
+signal_definition:
+  bearish_fvg_formation: "high[t] < low[t-2]  (downward gap across t-1)"
+  bullish_fvg_formation: "low[t] > high[t-2]   (upward gap across t-1)"
+  max_signal_lookforward: 50  # bars; FVG expires if no re-entry within 50 bars
+  bearish_reentry_signal: "first j in [t+1, t+50]: high[j] >= high[t]"
+  bullish_reentry_signal: "first j in [t+1, t+50]: low[j] <= low[t]"
+  entry_direction:
+    bearish_fvg: SHORT (-1)  # fade the gap fill — continuation expected
+    bullish_fvg: LONG (+1)
+  entry: "open[j+1]"
+  exit:  "open[j+1+H]"
+
+primary_set:
+  horizons: [4, 8, 16, 32]
+  test: one-sample t-test (direction_adjusted_return vs 0)
+  correction: Holm-Bonferroni on 4 tests, alpha=0.05
+  decision: any Holm-reject → PROMISING; all keep → REJECTED
+
+split:
+  train:      "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"  # SEALED
+  oos:        "2025-10-01 / 2026-07-01"  # SEALED
+  holdout:    "2026-07-01 / 2026-10-01"  # CONSUMED by HYP-E
+
+prior_evidence:
+  rucs0_backtester: "SPY 15m 2016-2022: FVG fill rate matches randomly placed zones (placebo). 0/48 configs positive. Results do NOT directly transfer to BTCUSDT H4."
+
+limitations:
+  - Gross returns only; no fees (0.105%/leg), no funding
+  - open[j+1] entry assumes instant fill at open
+  - FVG expiry rule (50 bars) is pre-registered; any change = new hypothesis
+
+alpha: 0.05
+multiple_testing_correction: Holm-Bonferroni (4 primary tests)
+minimum_events: 5
+
+results:
+  train:
+    split_candles: 2736
+    n_events_total: 441
+    n_short: 205
+    n_long: 236
+    horizons:
+      H4:  {n_included: 261, mean_pct:  0.0000, t:  0.000, p: 0.999718, holm: keep}
+      H8:  {n_included: 188, mean_pct:  0.1372, t:  0.620, p: 0.535611, holm: keep}
+      H16: {n_included: 120, mean_pct: -0.3856, t: -1.095, p: 0.273665, holm: keep}
+      H32: {n_included:  70, mean_pct: -0.5077, t: -0.642, p: 0.521084, holm: keep}
+  validation: null
+  oos: null
+  holdout: null
+
+decision: REJECTED
+rejection_reason: "All 4 Holm-corrected tests keep H_null on TRAIN split. No statistically significant FVG fill edge detected."

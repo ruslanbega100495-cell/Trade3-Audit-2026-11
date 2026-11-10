@@ -1,0 +1,72 @@
+id: HYP-K-005-SOL
+name: Multi-Candle Sweep + Structure Break — SOLUSDT H4 (Cross-Symbol Extension)
+date: 2026-10-25
+researcher: Ruslan
+status: BACKTEST
+parent_hypothesis: HYP-K-005
+
+note: >
+  Cross-symbol replication test. Same parameters as HYP-K-005 (N=20, confirm=20).
+  Exploratory. Registered before running on the data.
+
+hypothesis: >
+  The sweep+structure signal that was tested on BTCUSDT generalizes to SOLUSDT.
+  H_null: E[direction_adjusted_return] = 0.
+
+symbol: SOLUSDT
+data_hash: 2df9c98b6975a81d
+data_file: research/datasets/raw/bybit/SOLUSDT/H4/2024-01-01_2026-09-30.json
+timeframe: H4
+category: linear
+
+signal_parameters:
+  sweep_lookback_N: 20
+  confirm_window: 20
+  entry: "open[lh+3]"
+  horizons: [4, 8, 16, 32]
+
+primary_set:
+  horizons: [4, 8, 16, 32]
+  correction: Holm-Bonferroni
+  decision: any Holm-reject -> PROMISING; all keep -> REJECTED
+
+split:
+  train: "2024-01-01 / 2025-04-01"
+
+results:
+  train:
+    n_events_total: 175
+    n_short: 93
+    n_long: 82
+    horizons:
+      - H: 4
+        n_included: 101
+        n_excluded: 74
+        mean_dir_return_pct: -0.0471
+        t_stat: -0.120
+        p_value: 0.904703
+        holm_reject: false
+      - H: 8
+        n_included: 90
+        n_excluded: 85
+        mean_dir_return_pct: -0.2618
+        t_stat: -0.470
+        p_value: 0.638018
+        holm_reject: false
+      - H: 16
+        n_included: 74
+        n_excluded: 101
+        mean_dir_return_pct: 0.1220
+        t_stat: 0.134
+        p_value: 0.893727
+        holm_reject: false
+      - H: 32
+        n_included: 52
+        n_excluded: 123
+        mean_dir_return_pct: 1.3390
+        t_stat: 0.812
+        p_value: 0.416494
+        holm_reject: false
+    primary_decision: FAILS_TO_REJECT
+
+decision: FAILS_TO_REJECT

@@ -1,0 +1,108 @@
+id: HYP-K-008
+name: Price/OI Divergence (Breakout + OI Contraction) — BTCUSDT H4 (Event Study)
+date: 2026-10-25
+researcher: Ruslan
+status: BACKTEST
+
+hypothesis: >
+  Price close breakout above 20-bar rolling max WITH falling OI signals distribution:
+  "smart money" sells into retail breakout without new capital entering (OI does not grow).
+  Expected REVERSAL: SHORT after confirmed close breakout + OI contraction.
+  Symmetric LONG: close breakdown below 20-bar rolling min + OI contraction = capitulation
+  (forced short closures), expected LONG edge.
+  H_null: E[direction_adjusted_return] = 0.
+
+differs_from:
+  HYP-K-002: "K-002 is an intrabar sweep: high > prev_high AND close < prev_high (wick).
+    K-008 is a confirmed CLOSE breakout: close > max(close[t-20:t]). Different mechanism."
+  HYP-F-001: "F-001 (hypothesized) tests OI growth + price move (confirmation = continuation).
+    K-008 tests the opposite: price breakout + OI FALLING (divergence = reversal)."
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4
+
+ohlcv_data_hash: e182346101e28d26
+ohlcv_data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+oi_data_hash: eb1a3044ec0e3e35
+oi_data_file: research/datasets/raw/bybit/BTCUSDT/H4/oi_2024-01-01_2026-09-30.json
+
+signal:
+  data_alignment: "inner join OI and OHLCV on timestamp_ms"
+  N: 20  # price lookback bars
+  short: "close[t] > max(close[t-20:t]) AND OI[t] - OI[t-4] < 0"
+  long:  "close[t] < min(close[t-20:t]) AND OI[t] - OI[t-4] < 0"
+  rolling_max: "max(close[t-N:t]) — excludes bar t, uses only prior bars"
+  oi_delta: "OI[t] - OI[t-4]  (4 H4 bars back = 16h)"
+  entry: "open[t+1]"
+  exit: "open[t+1+H]"
+  lookahead_check: >
+    close[t]: candle closed before signal [OK]
+    max(close[t-N:t]): uses only bars strictly before t [OK]
+    OI[t]: OI at same bar open_time, assumed known at bar close [OK]
+    entry: open[t+1], strictly next bar [OK]
+
+primary_horizons: [4, 8, 16, 32]
+primary_H: 8
+correction: Holm-Bonferroni
+alpha: 0.05
+minimum_events: 5
+decision_rule: "any Holm-reject -> PROMISING; all keep -> REJECTED"
+
+split:
+  train:      "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"
+  oos:        "2025-10-01 / 2026-07-01"
+  holdout:    "2026-07-01 / 2026-10-01"
+
+limitations:
+  - Gross returns only (no fees, no funding cost, no slippage)
+  - Both branches use OI_delta < 0; directions are opposite — this is correct per mechanism
+  - SHORT and LONG branches NOT separated for cherry-picking post-results
+  - Inner join of OI and OHLCV: misaligned bars are dropped
+  - N=20 and H4 timeframe are pre-registered; changes create a new hypothesis
+
+results:
+  train:
+    n_aligned_bars_split: 2736
+    n_events_total: 225
+    n_short: 115
+    n_long: 110
+    horizons:
+      - H: 4
+        n_included: 134
+        n_excluded: 91
+        mean_dir_return_pct: -0.1399
+        t_stat: -0.714
+        p_value: 0.475173
+        holm_reject: false
+      - H: 8
+        n_included: 108
+        n_excluded: 117
+        mean_dir_return_pct: -0.4622
+        t_stat: -1.727
+        p_value: 0.084104
+        holm_reject: false
+      - H: 16
+        n_included: 84
+        n_excluded: 141
+        mean_dir_return_pct: -0.7758
+        t_stat: -1.549
+        p_value: 0.121278
+        holm_reject: false
+      - H: 32
+        n_included: 53
+        n_excluded: 172
+        mean_dir_return_pct: -0.2776
+        t_stat: -0.378
+        p_value: 0.705602
+        holm_reject: false
+    primary_decision: FAILS_TO_REJECT
+    note: >
+      H=8 closest to significance (p=0.084, not corrected). Negative mean_dir_return at
+      H=4/8/16 means direction-adjusted return is consistently negative: price moves against
+      the hypothesized direction. This is NOT a positive result — it suggests the signal
+      may be a weak ANTI-signal (breakout with OI contraction tends to continue slightly
+      rather than reverse). Effect size is small and not significant after Holm correction.
+      Do NOT act on this without full VALIDATION.
+decision: REJECTED

@@ -1,0 +1,125 @@
+id: HYP-M-002
+name: Cross-Sectional Momentum — 25 Bybit USDT Perps (H4)
+date: 2026-11-08
+researcher: Ruslan
+status: REJECTED_TRAIN
+hypothesis: >
+  Cryptocurrency cross-section exhibits momentum: assets with the highest
+  formation-period returns (L bars) outperform those with the lowest over the
+  next holding period (H bars). A dollar-neutral long-top-k / short-bottom-k
+  portfolio earns positive net-of-costs, net-of-funding returns.
+  H_null: E[net per-period return] = 0 (95% block-bootstrap CI includes 0).
+differs_from:
+  HYP-H16: >
+    H16 is time-series momentum on a single symbol (BTCUSDT), position sign
+    from own past return. HYP-M-002 is cross-sectional: ranking ACROSS 25
+    symbols at each rebalance, relative positions only, dollar-neutral.
+  HYP-K-005: >
+    K-005 were MA-crossover sweep replications (time-series, binary signal).
+    No cross-sectional ranking was tested before in this project.
+data: >
+  research/datasets/raw/bybit/<SYMBOL>/{H4,funding}/2022-11-01_2025-04-01.json,
+  25 symbols (BTC ETH BNB SOL XRP DOGE ADA AVAX DOT LINK LTC BCH NEAR UNI TRX
+  XLM XMR AAVE CRV OP APT INJ HBAR STX ZEC). Synchronized inner-join close
+  matrix (only bars present in ALL symbols — no look-ahead).
+data_hash: bybit_h4_2022-11-01_2025-04-01_25sym
+signal:
+  type: cross_sectional_momentum
+  momentum: "close[t]/close[t-L] - 1, ranked across 25 symbols at close of bar t"
+  entry: "close[t+1] (positions effective from bar t+1)"
+  exit: "after H bars (close of bar t+H)"
+  legs: "long top-k equal-weight, short bottom-k equal-weight, dollar-neutral, gross=1"
+grid:  # FIXED BEFORE RUN — 12 combinations, full trial ledger reported
+  L_formation_bars: [24, 48, 96]
+  H_holding_bars: [4, 12]
+  k_leg_size: [3, 5]
+  total_combinations: 12
+  selection_rule: >
+    Best combo by net Sharpe subject to DSR > 0.95 (Lopez de Prado deflated
+    Sharpe, docs/VALIDATION_PROTOCOL.md multiple-testing adjustment).
+cost_model:
+  taker_fee_pct: 0.055        # 0.00055 per side
+  slippage_pct: 0.050         # 0.00050 per side
+  applied: "full turnover at each rebalance (close old legs + open new legs)"
+funding:
+  source: actual Bybit historical funding (as-of join, past records only)
+  events: "00:00 / 08:00 / 16:00 UTC on held positions"
+  convention: >
+    Verified on data: mean funding_rate > 0 (~8e-5/8h), 76-90% positive
+    records — Bybit convention: LONG pays positive rate, SHORT receives it.
+split:
+  train: "2022-11-01 / 2025-04-01 (only available multi-symbol period)"
+  validation: NONE
+  limitation: >
+    This TRAIN window was already used as TRAIN for other hypotheses (normal
+    for this project), and there is NO independent validation period left for
+    this hypothesis: OOS 2025-10→2026-10 consumed (HYP-E), VALIDATION
+    2025-04→2025-10 reserved for HYP-H16 (D-001). Result is exploratory /
+    TRAIN-only. Confirmatory test possible only on post-2026-10 data.
+success_criteria:
+  - ">= 200 rebalance observations (non-overlapping periods)"
+  - "95% CI of mean net per-period return (block bootstrap) > 0"
+  - "PF > 1"
+  - "positive expectancy at 2x costs+slippage"
+  - "stable sign across half-year subperiods"
+primary_metrics: [mean_net_per_period, sharpe_annualized_dsr, max_drawdown, profit_factor, hit_rate]
+known_biases:
+  survivorship: >
+    25 symbols = current liquid list as of 2026-11; symbols that were
+    delisted/illiquid in 2022-2025 are excluded → upward bias in returns
+    possible. Reported as limitation.
+status_note: exploratory, TRAIN-only
+results:
+  train:
+    run_date: 2026-11-08
+    report: research/multi_exchange/BACKTESTS/HYP-M-002_xsmom_train.md
+    data: "5272 synchronized H4 bars x 25 symbols (inner join), 2022-11-01..2025-04-01"
+    trial_ledger:  # all 12 pre-registered combinations
+      # key: L_H_k -> n_periods, mean_net_per_period, sharpe, dsr, pf, ci95
+      - {L: 24, H: 4, k: 3, n: 1311, mean: -0.00143, sharpe: -2.09, dsr: 0.000, pf: 0.775, ci: [-0.00232, -0.00044]}
+      - {L: 24, H: 4, k: 5, n: 1311, mean: -0.00144, sharpe: -2.80, dsr: 0.000, pf: 0.710, ci: [-0.00212, -0.00072]}
+      - {L: 24, H: 12, k: 3, n: 437, mean: +0.00085, sharpe: +0.40, dsr: 0.145, pf: 1.090, ci: [-0.00233, +0.00461]}
+      - {L: 24, H: 12, k: 5, n: 437, mean: +0.00003, sharpe: +0.02, dsr: 0.052, pf: 1.005, ci: [-0.00212, +0.00252]}
+      - {L: 48, H: 4, k: 3, n: 1305, mean: -0.00165, sharpe: -2.40, dsr: 0.000, pf: 0.744, ci: [-0.00257, -0.00061]}
+      - {L: 48, H: 4, k: 5, n: 1305, mean: -0.00169, sharpe: -3.21, dsr: 0.000, pf: 0.675, ci: [-0.00246, -0.00081]}
+      - {L: 48, H: 12, k: 3, n: 435, mean: -0.00136, sharpe: -0.65, dsr: 0.005, pf: 0.871, ci: [-0.00413, +0.00164]}
+      - {L: 48, H: 12, k: 5, n: 435, mean: -0.00085, sharpe: -0.54, dsr: 0.007, pf: 0.893, ci: [-0.00303, +0.00170]}
+      - {L: 96, H: 4, k: 3, n: 1293, mean: -0.00137, sharpe: -2.09, dsr: 0.000, pf: 0.777, ci: [-0.00221, -0.00044]}
+      - {L: 96, H: 4, k: 5, n: 1293, mean: -0.00130, sharpe: -2.52, dsr: 0.000, pf: 0.735, ci: [-0.00197, -0.00052]}
+      - {L: 96, H: 12, k: 3, n: 431, mean: +0.00065, sharpe: +0.32, dsr: 0.116, pf: 1.073, ci: [-0.00192, +0.00355]}
+      - {L: 96, H: 12, k: 5, n: 431, mean: -0.00024, sharpe: -0.16, dsr: 0.029, pf: 0.968, ci: [-0.00195, +0.00174]}
+    best:
+      combo: {L: 24, H: 12, k: 3}
+      n_periods: 437
+      mean_net_per_period: +0.00085
+      total_net: +0.370
+      sharpe_annualized: 0.40
+      dsr: 0.145
+      profit_factor: 1.090
+      hit_rate: 0.474
+      ci95: [-0.00233, +0.00461]
+      max_drawdown: 0.446
+      funding_total: +0.035
+      costs_total: -0.918
+      price_total: +1.253
+      mean_2x_costs: -0.00125
+      subperiods:
+        "2022-11..2023-06": +0.00168
+        "2023-07..2023-12": +0.00077
+        "2024-01..2024-06": -0.00084
+        "2024-07..2024-12": +0.00603
+        "2025-01..2025-04": -0.00889
+      top1_symbol_share: 0.149  # STXUSDT
+    failures:
+      - "no combination has 95% CI > 0 (best CI includes 0)"
+      - "DSR max 0.145 << 0.95 across all 12 trials"
+      - "best combo negative at 2x costs (-0.00125/period)"
+      - "H=4 variants uniformly negative: costs 0.0021/period exceed momentum edge"
+      - "unstable across half-years; 2025-01..2025-04 negative everywhere"
+  conclusion: >
+    REJECTED on TRAIN. Cross-sectional momentum (4-day horizon) on 25 Bybit
+    alts does not survive realistic costs: raw price edge (+125%) barely
+    exceeds costs (-92%) at best combo. Negative result kept per protocol;
+    not to be retuned. Confirmatory re-test only on post-2026-10 data.
+decision: REJECTED (TRAIN) — exploratory, no independent validation possible;
+  survivorship bias (current liquid list) may overstate the signal.

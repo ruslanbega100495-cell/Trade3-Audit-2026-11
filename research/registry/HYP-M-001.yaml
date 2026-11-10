@@ -1,0 +1,82 @@
+id: HYP-M-001
+name: Cross-Exchange Price Dislocation (slow arbitrage) — BTCUSDT H1, 6 venues
+date: 2026-11-09
+researcher: Kimi research team
+status: REJECTED
+status_reason: "Registered BEFORE analysis (trade3 protocol). Event study 2026-11-09: INSUFFICIENT_EVENTS — 1 persistent event >=10bps in 2.5y vs >=200 required; median |dislocation| 0.4-2.8bps << 10bps cost floor."
+hypothesis: >
+  H1 close prices of tier-2 venues (HTX/WEEX/BingX/KuCoin) dislocate from the
+  leader median (Bybit/OKX) by >= theta bps. Dislocations persisting >= 2 bars and
+  >= round-trip taker cost (0.10%) collapse toward the leader median, making a
+  slow position-transfer arbitrage economically viable.
+  H_null: dislocation sign has no predictive power for the next 1-4 bars' convergence
+  direction, or convergence magnitude <= round-trip cost.
+differs_from:
+  HYP-K-sweep-family: >
+    K-002/004/005 tested intrabar sweep/reversal patterns on a SINGLE venue
+    (Bybit BTC H4). M-001 is a CROSS-VENUE relative-price convergence study —
+    different signal, different asset basis, different execution model.
+  Track-B-illiquid: >
+    Track B (DEX lag scalping) was falsified (median lag -43ms). M-001 works on
+    minute-scale candle dislocations across CEX venues, no latency edge assumed.
+data: >
+  H1 BTCUSDT klines 2024-04-01 -> run date, venues: bybit, okx, kucoin, htx,
+  weex, bingx. Files: research/datasets/raw/<venue>/BTCUSDT/H1/*.json.
+  Coverage differs per venue (kucoin intraday from 2024-08-05, bingx from
+  ~2024-04-20 listing window, htx from 2020 with 2020 gap outside window).
+  Cross-venue analysis uses pairwise timestamp intersection only — no interpolation.
+signal:
+  type: event_study (descriptive first; trading backtest only if events sufficient)
+  dislocation_measure: "close_v[t] / median_leaders[t] - 1, leaders = venues present at t with full history weight"
+  thresholds_bps: [10, 25, 50, 100]
+  horizons_bars: [1, 2, 4]
+  persistence_requirement: ">= 2 consecutive bars beyond threshold"
+  cost_floor_bps: 10   # round-trip taker 0.05%+0.05% — dislocation must exceed to be tradable
+cost_model:
+  taker_fee_pct: 0.05   # per side, conservative tier-2
+  slippage_pct: 0.05    # per side
+  note: "maker-based variants only in a later confirmatory stage"
+success_criteria:
+  - ">= 200 independent dislocation events after persistence filter"
+  - "95% CI on mean convergence-return net of 0.10% round-trip cost > 0"
+  - "directional hit-rate of convergence > 55% with binomial p < 0.05"
+  - "result holds at 2x cost and is not concentrated in < 3 months"
+split:
+  train: "2024-04-01 / 2026-11-09 (full available cross-venue window)"
+  validation: null
+  note: >
+    Single exploratory descriptive pass. Any confirmatory trading test must be
+    pre-registered separately BEFORE viewing these results' trading-relevant
+    aggregates, and must use time-split (e.g. first 70% fit / last 30% test)
+    fixed in a follow-up registration.
+results:
+  study_type: "descriptive event study (pre-registered)"
+  run_date: 2026-11-09
+  dislocation_distribution_bps:
+    kucoin: {n: 19826, median: 2.77, p90: 4.90, p99: 6.53, max: 34.12}
+    htx_3mo: {n: 1999, median: 1.29, p90: 3.14, p99: 5.23, max: 8.42}
+    weex: {n: 22851, median: 0.94, p90: 3.23, p99: 5.30, max: 29.58}
+    bingx: {n: 22218, median: 0.42, p90: 2.05, p99: 4.50, max: 18.48}
+  events_persist_ge_2h:
+    th10bps: {kucoin: 1, htx: 0, weex: 0, bingx: 0}
+    th25bps: {kucoin: 0, htx: 0, weex: 0, bingx: 0}
+    th50bps: {kucoin: 0, htx: 0, weex: 0, bingx: 0}
+    th100bps: {kucoin: 0, htx: 0, weex: 0, bingx: 0}
+  datasets:
+    bybit: {hash: 5f4d29c127893565, n: 22852}
+    okx: {hash: cf00d8ac8c8c3d55, n: 22852}
+    kucoin: {hash: fd22aa7e419ef6b2, n: 19826}
+    htx: {hash: a778ba2f9da927de, n: 1999, note: "HTX 60min API ignores from/to — only ~3 months available"}
+    weex: {hash: aa1cbc1aebcbad0f, n: 22851}
+    bingx: {hash: 4f4f33ee5daccd3a, n: 22218}
+  report: research/multi_exchange/BACKTESTS/HYP-M-001_dislocation_study.md
+  raw_output: research/multi_exchange/BACKTESTS/hyp_m001_results.json
+decision: >
+  REJECTED (INSUFFICIENT_EVENTS, structural not statistical). Hourly closes deviate
+  from leader median by median 0.4-2.8 bps, p99 <= 6.5 bps — an order of magnitude
+  below the 10 bps round-trip cost floor. Persistent (>=2h) dislocations >= 10 bps:
+  1 event in 2.5 years. Criterion ">=200 events" failed by 200x. Slow H1 dislocation
+  arbitrage is economically dead on these six venues 2024-2026. Does NOT refute
+  second-scale dislocations (need ticks, prospective) or alt-perp dislocations
+  (BTC only tested).
+rejection_reason: "insufficient_events: 1 event vs >=200 required; distribution far below cost floor"

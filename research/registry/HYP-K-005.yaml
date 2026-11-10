@@ -1,0 +1,84 @@
+id: HYP-K-005
+name: Multi-Candle Sweep + Structure Break — BTCUSDT H4 (Event Study / AZ-07)
+date: 2026-10-24
+researcher: Ruslan
+status: BACKTEST
+
+hypothesis: >
+  When price sweeps a 20-bar rolling high (or low) with a close-back, AND a subsequent
+  lower high (or higher low) is confirmed within 20 bars of the sweep, forward returns
+  favor REVERSAL. This is the multi-candle version of AZ-07 (sweep → structure break),
+  distinct from HYP-K-002 (single-candle false breakout).
+  H_null: E[direction_adjusted_return] = 0.
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4
+data_hash: e182346101e28d26
+data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+
+signal_definition:
+  sweep_lookback_N: 20
+  short_sweep_bar_s: "high[s] > max(high[s-20:s]) AND close[s] < max(high[s-20:s])"
+  lower_high_confirmation: >
+    Find first lh in [s+1, s+20] where:
+    high[lh] > high[lh-1]    (local high)
+    AND high[lh] > high[lh+1] (not immediately surpassed)
+    AND high[lh] > high[lh+2] (confirmed 2 bars later)
+    AND high[lh] < high[s]    (lower than sweep bar = structure break)
+    Identified at bar lh+2.
+  short_entry: "open[lh+3]"
+  long_sweep_bar_s: "low[s] < min(low[s-20:s]) AND close[s] > min(low[s-20:s])"
+  higher_low_confirmation: >
+    Find first lh in [s+1, s+20] where:
+    low[lh] < low[lh-1] AND low[lh] < low[lh+1] AND low[lh] < low[lh+2]
+    AND low[lh] > low[s]  (higher than sweep bar = structure break confirmed)
+    Identified at bar lh+2.
+  long_entry: "open[lh+3]"
+  max_confirmation_window: 20  # bars after sweep; if no confirmation, discard sweep
+
+differs_from:
+  HYP-K-002: >
+    HYP-K-002: entry at open[s+1] immediately after sweep+close-back on same candle.
+    HYP-K-005: requires ADDITIONAL structural confirmation (lower high) before entry.
+    Different events, different frequency, different timing.
+
+primary_set:
+  horizons: [4, 8, 16, 32]
+  test: one-sample t-test
+  correction: Holm-Bonferroni (4 tests), alpha=0.05
+  decision: any Holm-reject → PROMISING; all keep → REJECTED
+
+split:
+  train:      "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"  # SEALED
+  oos:        "2025-10-01 / 2026-07-01"  # SEALED
+  holdout:    "2026-07-01 / 2026-10-01"  # CONSUMED
+
+alpha: 0.05
+minimum_events: 5
+multiple_testing_correction: Holm-Bonferroni (4 primary tests)
+
+limitations:
+  - Gross returns only
+  - Swing confirmation (2 bars) is conservative; different lookback = new hypothesis
+  - Low signal frequency expected (sweep + confirmation required)
+
+results:
+  train:
+    split_candles: 2736
+    n_events_total: 183
+    n_short: 97
+    n_long: 86
+    horizons:
+      H4:  {n_included: 118, mean_pct:  0.1023, t:  0.587, p: 0.557167, holm: keep}
+      H8:  {n_included: 103, mean_pct: -0.1209, t: -0.489, p: 0.625022, holm: keep}
+      H16: {n_included:  79, mean_pct: -0.0061, t: -0.012, p: 0.990390, holm: keep}
+      H32: {n_included:  54, mean_pct:  1.9192, t:  2.145, p: 0.031959, holm: keep}
+    note: "H32 nominal p=0.032 (t=2.145, n=54), Holm threshold=0.0125 — does not reject. Interesting but not significant after correction."
+  validation: null
+  ois: null
+  holdout: null
+
+decision: REJECTED
+rejection_reason: "All 4 Holm-corrected tests keep H_null on TRAIN split. H32 shows nominal p=0.032 (t=2.14) but fails Holm threshold (0.0125). Low event count (n=54 at H32) — result may be spurious."

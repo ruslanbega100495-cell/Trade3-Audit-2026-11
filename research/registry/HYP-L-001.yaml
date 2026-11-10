@@ -1,0 +1,117 @@
+id: HYP-L-001
+name: Cross-Sectional Funding Carry — Bybit USDT Perps (Dollar-Neutral Portfolio)
+date: 2026-11-07
+researcher: Kimi (autonomous research session)
+status: BACKTEST
+
+# -----------------------------------------------------------------------
+# Registered BEFORE any signal results were examined.
+# Data collection (prices/funding) is allowed before backtest, but no
+# results were viewed at registration time.
+# -----------------------------------------------------------------------
+
+hypothesis: >
+  Across Bybit USDT perpetuals, symbols with persistently HIGH funding rates
+  (longs overpaying shorts) underperform symbols with LOW/NEGATIVE funding in
+  subsequent 8h periods. A dollar-neutral portfolio LONG the bottom-funding
+  quintile and SHORT the top-funding quintile, rebalanced at each funding
+  timestamp, earns net positive return after all costs.
+  H_null: E[net_portfolio_return_including_funding_and_costs] = 0.
+
+  Economic mechanism: leveraged retail long bias keeps perps of "hot" symbols
+  persistently over-funded; the cross-sectional funding spread is a premium
+  paid by impatient longs to passive shorts. Dollar-neutrality cancels market
+  beta, so the portfolio harvests the spread, not price direction.
+
+  Distinction from prior hypotheses:
+  HYP-H15 (REJECTED, Sharpe -4.17): SINGLE-symbol BTC carry TIMING — directional
+    long/short on one asset when funding crosses thresholds. Exposed to BTC price
+    drag (funding earned +0.0146% vs price drag -0.0707% per 8h).
+  HYP-G-001 (REJECTED): BTC funding-extreme PRICE reversal event study (gross).
+  HYP-L-001: CROSS-SECTIONAL, dollar-neutral basket of ~20 symbols — price drag
+    cancels by construction; PnL source is the funding SPREAD between symbols,
+    not timing one asset.
+
+market: Bybit USDT perpetuals (linear)
+timeframe: 8h (rebalance at funding timestamps 00/08/16 UTC)
+
+universe_rule: >
+  Fixed ex-ante, liquidity criterion only (no return-based selection):
+  top ~25 USDT linear perps by 24h turnover (Bybit /v5/market/tickers) with
+  listing date before 2022-11-01 (funding history available), minus stablecoin/
+  fiat pairs (USDCUSDT etc.) and wrapped/duplicate exposure (WBTC, stETH-type).
+  Final symbol list is written below AFTER download and BEFORE backtest.
+
+universe: []  # filled after data collection, before any backtest run
+
+data_required: [funding history 8h, H4 OHLCV, listing dates]
+data_range: 2022-11-01 -> 2025-03-31  # covers TRAIN + VALIDATION per protocol
+data_hashes: {}  # sha256 of each dataset file, filled before backtest
+
+signal: >
+  At each funding timestamp t (00/08/16 UTC), rank universe symbols by the
+  funding rate published at t (known at t, no lookahead).
+  LONG = bottom quintile by funding (lowest / most negative).
+  SHORT = top quintile by funding (highest).
+  Equal dollar weight within each leg; each leg = 50% of portfolio gross
+  (portfolio gross = 100%). Hold t -> t+8h.
+
+entry_exit: >
+  Entry/exit at H4 close aligned to the funding timestamp (H4 closes are
+  exactly at 00/08/16 UTC). No intrabar fills — 8h holding period only.
+
+costs:
+  maker_fee: 0.02%   # sensitivity variant only
+  taker_fee: 0.055%  # VIP0 primary (entry+exit, both legs)
+  slippage: 0.02% per side (conservative, illiquid alts)
+  funding: modeled from actual Bybit funding history; long pays when f>0,
+    receives when f<0; short mirror image. Applied at each funding timestamp
+    for positions held through it.
+  spread: included via slippage (no book history available)
+
+splits:  # per VALIDATION_PROTOCOL.md fixed splits
+  train: 2023-01-01 / 2024-06-30
+  validation: 2024-07-01 / 2025-03-31
+  oos: NOT OPENED in this run. Protocol OOS 2025-04-01/2025-12-31 and windows
+    2025-10-01->2026-07-01 (OOS) and 2026-07-01->2026-10-01 (HOLDOUT) are
+    treated as consumed per trade3-research-protocol skill; no OOS/HOLDOUT
+    evaluation in this registration.
+
+parameter_grid:  # ALL planned variants — full trial ledger, no cherry-picking
+  primary:
+    id: P0
+    universe_n: 20   # if fewer pass QC, use all that pass (min 12)
+    quintile_k: 4    # 20% per leg
+    fees: taker 0.055%
+    slippage: 0.02% per side
+  sensitivity:  # ±10-20% robustness checks, NOT selection
+    - id: S1
+      change: quintile_k 4 -> 2 (top/bottom 10%)
+    - id: S2
+      change: fees taker -> maker 0.02% (best-case execution)
+    - id: S3
+      change: skip rebalance if symbol set unchanged at t (turnover reduction)
+    - id: S4
+      change: universe_n 20 -> 12 (concentration check)
+  total_combos: 5  # <= 10, Deflated Sharpe Ratio not triggered
+
+trial_ledger: []  # every run logged here, including failures
+
+decision_rule: >
+  PROMISING only if ALL of:
+    - >= 200 portfolio rebalance periods on TRAIN (statistical significance
+      per VALIDATION_PROTOCOL; note: 8h periods, ~550/yr)
+    - 95% CI on per-period net expectancy > 0 on TRAIN
+    - positive net expectancy on VALIDATION with frozen parameters
+    - positive expectancy remains at 2x fees+slippage on TRAIN
+    - parameter sensitivity variants S1-S4 do not collapse (expectancy sign
+      preserved on TRAIN)
+  Otherwise REJECTED with recorded reason. No tuning after VALIDATION.
+
+results:
+  train: null
+  validation: null
+  sensitivity: null
+
+decision: null
+rejection_reason: null

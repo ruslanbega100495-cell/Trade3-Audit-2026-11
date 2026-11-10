@@ -1,0 +1,72 @@
+id: HYP-K-005-ETH
+name: Multi-Candle Sweep + Structure Break — ETHUSDT H4 (Cross-Symbol Extension)
+date: 2026-10-25
+researcher: Ruslan
+status: BACKTEST
+parent_hypothesis: HYP-K-005
+
+note: >
+  Cross-symbol replication test. Same parameters as HYP-K-005 (N=20, confirm=20).
+  Exploratory. Registered before running on the data.
+
+hypothesis: >
+  The sweep+structure signal that was tested on BTCUSDT generalizes to ETHUSDT.
+  H_null: E[direction_adjusted_return] = 0.
+
+symbol: ETHUSDT
+data_hash: 9e3920e4151c19d7
+data_file: research/datasets/raw/bybit/ETHUSDT/H4/2024-01-01_2026-09-30.json
+timeframe: H4
+category: linear
+
+signal_parameters:
+  sweep_lookback_N: 20
+  confirm_window: 20
+  entry: "open[lh+3]"
+  horizons: [4, 8, 16, 32]
+
+primary_set:
+  horizons: [4, 8, 16, 32]
+  correction: Holm-Bonferroni
+  decision: any Holm-reject -> PROMISING; all keep -> REJECTED
+
+split:
+  train: "2024-01-01 / 2025-04-01"
+
+results:
+  train:
+    n_events_total: 156
+    n_short: 101
+    n_long: 55
+    horizons:
+      - H: 4
+        n_included: 99
+        n_excluded: 57
+        mean_dir_return_pct: 0.0008
+        t_stat: 0.003
+        p_value: 0.997484
+        holm_reject: false
+      - H: 8
+        n_included: 94
+        n_excluded: 62
+        mean_dir_return_pct: 0.3824
+        t_stat: 1.096
+        p_value: 0.273035
+        holm_reject: false
+      - H: 16
+        n_included: 76
+        n_excluded: 80
+        mean_dir_return_pct: 1.2829
+        t_stat: 2.115
+        p_value: 0.034470
+        holm_reject: false
+      - H: 32
+        n_included: 52
+        n_excluded: 104
+        mean_dir_return_pct: 1.0454
+        t_stat: 1.136
+        p_value: 0.255923
+        holm_reject: false
+    primary_decision: FAILS_TO_REJECT
+
+decision: FAILS_TO_REJECT

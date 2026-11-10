@@ -1,0 +1,97 @@
+id: HYP-K-006
+name: Funding Rate Extreme + OI Contraction — BTCUSDT H4 (Event Study)
+date: 2026-10-25
+researcher: Ruslan
+status: BACKTEST
+
+hypothesis: >
+  When BTCUSDT 8h funding rate is in the extreme top decile of rolling 400-period history
+  AND open interest is declining (OI[t] < OI[t-4]), longs are being forced out (distribution).
+  Combined signal expected to show stronger SHORT edge than funding alone (HYP-G-001 REJECTED).
+  Symmetric LONG branch: extreme negative funding + OI falling = short squeeze / flush-out.
+  H_null: E[direction_adjusted_return] = 0.
+
+differs_from:
+  HYP-G-001: "G-001 used funding extreme alone (REJECTED). K-006 requires simultaneous OI
+    contraction — tests the real distribution phase, not just funding level."
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4 (entry aligned to H4 candle opens)
+
+funding_data_hash: 5b8057d195a7c8a9
+funding_data_file: research/datasets/raw/bybit/BTCUSDT/funding/2024-01-01_2026-09-30.json
+ohlcv_data_hash: e182346101e28d26
+ohlcv_data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+oi_data_hash: eb1a3044ec0e3e35
+oi_data_file: research/datasets/raw/bybit/BTCUSDT/H4/oi_2024-01-01_2026-09-30.json
+
+signal:
+  rolling_window: 400  # funding rate observations (~133 days lookback)
+  short: "funding_rate[t] >= quantile90 AND OI[t] - OI[t-4] < 0"
+  long: "funding_rate[t] <= quantile10 AND OI[t] - OI[t-4] < 0"
+  oi_alignment: "last OI bar with timestamp_ms <= funding_timestamp_ms"
+  oi_delta: "OI[aligned_idx] - OI[aligned_idx - 4]  (4 H4 OI bars back = 16h)"
+  entry: "open of first H4 candle with open_time_ms >= funding_timestamp_ms"
+  exit: "open at entry_idx + H"
+
+primary_horizons: [4, 8, 16, 32]
+primary_H: 8
+correction: Holm-Bonferroni
+alpha: 0.05
+minimum_events: 5
+decision_rule: "any Holm-reject -> PROMISING; all keep -> REJECTED"
+
+split:
+  train:      "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"
+  oos:        "2025-10-01 / 2026-07-01"
+  holdout:    "2026-07-01 / 2026-10-01"
+
+limitations:
+  - Gross returns only (no fees ~5.5 bps/leg, no funding cost, no slippage)
+  - LONG branch (extreme negative funding + OI falling) has less direct mechanism than SHORT
+  - Funding-to-H4 alignment: 1 funding event maps to multiple H4 bars (8h funding / 4h H4)
+  - rolling_window=400 is pre-registered; changing it creates a new hypothesis
+  - SHORT and LONG branches are NOT separated for cherry-picking after seeing results
+
+results:
+  train:
+    n_events_total: 146
+    n_short: 83
+    n_long: 63
+    horizons:
+      - H: 4
+        n_included: 93
+        n_excluded: 53
+        mean_dir_return_pct: -0.3075
+        t_stat: -1.544
+        p_value: 0.122503
+        holm_reject: false
+      - H: 8
+        n_included: 75
+        n_excluded: 71
+        mean_dir_return_pct: -0.2470
+        t_stat: -0.809
+        p_value: 0.418215
+        holm_reject: false
+      - H: 16
+        n_included: 55
+        n_excluded: 91
+        mean_dir_return_pct: -0.2779
+        t_stat: -0.500
+        p_value: 0.616749
+        holm_reject: false
+      - H: 32
+        n_included: 37
+        n_excluded: 109
+        mean_dir_return_pct: 0.4246
+        t_stat: 0.424
+        p_value: 0.671854
+        holm_reject: false
+    primary_decision: FAILS_TO_REJECT
+    note: >
+      OI contraction filter reduced events vs G-001 (146 vs 318) but did not improve
+      statistical significance. All four horizons fail to reject H_null. The negative
+      mean at H=4/8/16 is in the predicted SHORT direction but far from significance.
+decision: REJECTED

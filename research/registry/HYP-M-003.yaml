@@ -1,0 +1,96 @@
+id: HYP-M-003
+name: Cross-Exchange Funding Rate Spread Carry — Bybit vs OKX, BTCUSDT/ETHUSDT perps
+date: 2026-11-09
+researcher: Kimi research team
+status: DATA_COLLECTION
+status_reason: >
+  Registered BEFORE analysis (trade3 protocol). This run is exploratory
+  DESCRIPTIVE only — no trading backtest, no edge claim. WS recording started
+  2026-11-08/09 (< 1 week of data; continuous coverage at registration ~1 day).
+  Statistics are immature: any spread statistics below are qualitative.
+hypothesis: >
+  The funding rate of the same perpetual asset differs across exchanges.
+  A delta-neutral position — long the perp on the exchange with the LOWER
+  funding rate, short the perp on the exchange with the HIGHER funding rate
+  (or the reverse, sign-dependent) — collects the funding spread and has
+  positive expected PnL after round-trip costs while the spread persists.
+  H_null: mean funding spread <= round-trip cost floor (10 bps/8h) or the
+  spread is non-stationary with half-life >= 7 days (carry does not decay
+  fast enough to be harvestable as convergence), or sign stability < 60%.
+differs_from:
+  HYP-M-001: >
+    M-001 tested cross-exchange PRICE dislocation on H1 klines (2024-2026,
+    REJECTED: median 0.4-2.8 bps). M-003 tests the funding RATE differential
+    (a carry/convergence on the derivative funding leg, not the price leg) —
+    different signal, different data (WS tickers + funding history), different
+    cost model (funding accrues every 8h vs one-off transfer cost).
+  HYP-M-002: >
+    M-002 was cross-sectional momentum across 25 Bybit alts (REJECTED_TRAIN).
+    M-003 is a two-venue funding spread on BTC/ETH only, delta-neutral, no
+    directional market exposure.
+data: >
+  WS tickers research/datasets/raw/ws/{bybit/tickers.BTCUSDT,tickers.ETHUSDT,
+  okx/tickers.BTC-USDT-SWAP,tickers.ETH-USDT-SWAP}/*.jsonl, fields norm.funding_rate
+  (string), norm.next_funding_time. NOTE (QC, registered blind): OKX ticker
+  pushes carry NO funding fields at all; Bybit tickers carry funding only in
+  snapshots and in deltas when the value changes. Funding marks grid: 00/08/16 UTC.
+  As-of join: value known at mark T = last observation with recv_ts <= T whose
+  next_funding_time == T; no interpolation, no look-ahead.
+  Sanity source: Bybit REST funding history research/datasets/raw/bybit/<SYM>/funding/
+  (2024-01-01_2026-09-30.json ends ~5 weeks before WS start — expected NO overlap;
+  bridge via small public REST fetch, documented in results).
+  DATA MATURITY: accumulated 2026-11-08/09, less than one week. < 200 funding
+  marks exist. All numbers in the descriptive run are exploratory.
+signal:
+  type: descriptive funding-spread study (no trading backtest at this stage)
+  spread_measure: "(funding_bybit(t) - funding_okx(t)) * 1e4, bps per 8h mark"
+  marks_grid: ["00:00", "08:00", "16:00"]  # UTC funding timestamps
+  thresholds_bps: [10, 20]   # 10 bps = round-trip cost floor; 20 bps = literature bucket
+  cadence: 8h
+cost_model:
+  round_trip_cost_floor_bps_per_8h: 10   # 0.05% taker + 0.05% slippage per side amortized per 8h funding mark
+  note: "exact amortization depends on holding period; floor used as descriptive threshold only"
+success_criteria:
+  - ">= 200 independent 8h funding marks per asset pair"
+  - "95% CI on mean funding spread > 10 bps/8h (round-trip cost floor)"
+  - "spread series stationary (ADF test) with half-life < 7 days"
+  - "sign stability >= 60% of marks (same venue pays more)"
+split:
+  train: null
+  validation: null
+  note: >
+    DATA_COLLECTION stage. This run: exploratory descriptive only. Any
+    confirmatory test (trading backtest, CI-based accept/reject on the criteria
+    above) must be pre-registered separately BEFORE viewing confirmatory
+    aggregates, on a time-split fixed in that registration.
+results:
+  study_type: "exploratory descriptive (registered BEFORE analysis)"
+  run_date: 2026-11-09
+  report: research/multi_exchange/BACKTESTS/HYP-M-003_funding_descriptive.md
+  raw_output: research/multi_exchange/BACKTESTS/hyp_m003_results.json
+  qc_key_findings:
+    - "OKX WS tickers carry NO funding fields (0/98k records) — prospective arm blocked until recorder fixed"
+    - "Bybit WS funding as-of reconstructable but sparse (13-39 records/17h)"
+    - "WS coverage < 1 day at run date; 3-6 full funding marks only"
+  spread_descriptive_rest_bridge_bps_per_8h:
+    note: "realized spread, 2026-09 -> 2026-11-09, n=181 marks/asset; PRELIMINARY bridge, not the prospective WS series"
+    btc: {mean: -0.071, median: -0.088, p95_abs_band: 0.491, mean_abs: 0.248,
+          share_abs_gt_10bps: 0.0, share_abs_gt_20bps: 0.0, sign_stability: 0.586,
+          adf_t: -5.15, half_life_days: 0.17}
+    eth: {mean: -0.051, median: -0.023, p95_abs_band: 0.513, mean_abs: 0.286,
+          share_abs_gt_10bps: 0.0, share_abs_gt_20bps: 0.0, sign_stability: 0.530,
+          adf_t: -4.58, half_life_days: 0.22}
+  sanity: "REST bridge continues local Bybit funding file exactly (5.495e-05 @2026-09-30T16:00); sign convention long-pays verified"
+  new_datasets:
+    - research/datasets/raw/bybit/BTCUSDT/funding/2026-09-10_2026-11-09.json
+    - research/datasets/raw/bybit/ETHUSDT/funding/2026-09-10_2026-11-09.json
+    - research/datasets/raw/okx/BTC-USDT-SWAP/funding/2026-09-03_2026-11-09.json
+    - research/datasets/raw/okx/ETH-USDT-SWAP/funding/2026-09-03_2026-11-09.json
+  literature_comparison: "MDPI 2026: 17% obs >= 20 bps; observed 0% >= 10 bps in 362 marks — consistent with REJECTED HYP-M-005 (cross-venue funding dispersion sub-bps)"
+  maturity_math: "3 marks/day -> >=200 marks need ~67 days of recording (earliest ~2027-01-14)"
+decision: >
+  No decision (DATA_COLLECTION). Exploratory descriptive shows sub-bps realized
+  spread (mean abs 0.25-0.29 bps/8h, zero marks above the 10 bps cost floor in
+  60 days), stationary with fast decay — far below the registered cost floor.
+  Low prior (already after HYP-M-005) further lowered; confirmatory deferred
+  and likely moot unless WS OKX funding source is fixed. No edge claimed.

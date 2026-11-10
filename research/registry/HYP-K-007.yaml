@@ -1,0 +1,100 @@
+id: HYP-K-007
+name: OI Absolute Level Extremes — BTCUSDT H4 (Event Study)
+date: 2026-10-25
+researcher: Ruslan
+status: BACKTEST
+
+hypothesis: >
+  When BTCUSDT open interest is at its historical maximum (top 10% of rolling 400-bar
+  window), the market is maximally loaded with positions. Any shock causes large forced
+  closures favoring SHORT. At OI historical minimum (bottom 10%), after a flush-out, LONG
+  edge expected. Tests OI LEVEL (not change), analogous to H-001 (basis) and G-001 (funding)
+  but using OI as the primary signal.
+  H_null: E[direction_adjusted_return] = 0.
+
+differs_from:
+  HYP-F-001: "F-001 (hypothesized) tests OI change rate. K-007 tests OI absolute level."
+  HYP-K-006: "K-006 requires OI contraction as filter for funding signal. K-007 uses OI
+    level alone without funding."
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4
+
+ohlcv_data_hash: e182346101e28d26
+ohlcv_data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+oi_data_hash: eb1a3044ec0e3e35
+oi_data_file: research/datasets/raw/bybit/BTCUSDT/H4/oi_2024-01-01_2026-09-30.json
+
+signal:
+  data_alignment: "inner join OI and OHLCV on timestamp_ms"
+  rolling_window: 400  # H4 bars (~67 days lookback)
+  short: "OI_level[t] >= quantile(OI_level[t-400:t], 90)"
+  long: "OI_level[t] <= quantile(OI_level[t-400:t], 10)"
+  entry: "open[t+1]"
+  exit: "open[t+1+H]"
+
+primary_horizons: [4, 8, 16, 32]
+primary_H: 16
+correction: Holm-Bonferroni
+alpha: 0.05
+minimum_events: 5
+decision_rule: "any Holm-reject -> PROMISING; all keep -> REJECTED"
+
+split:
+  train:      "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"
+  oos:        "2025-10-01 / 2026-07-01"
+  holdout:    "2026-07-01 / 2026-10-01"
+
+limitations:
+  - OI absolute level may be non-stationary (trending upward with market growth).
+    Rolling percentile with 400-bar window may therefore primarily capture recent vs
+    older values (recent highs will always be in top 10%). This is a pre-registered
+    limitation, not a post-hoc correction.
+  - Gross returns only (no fees, no funding cost, no slippage)
+  - rolling_window=400 is pre-registered; changing it creates a new hypothesis
+  - Inner join of OI and OHLCV: misaligned bars are dropped
+
+results:
+  train:
+    n_aligned_bars_split: 2736
+    n_events_total: 807
+    n_short: 392
+    n_long: 415
+    horizons:
+      - H: 4
+        n_included: 198
+        n_excluded: 609
+        mean_dir_return_pct: 0.0469
+        t_stat: 0.303
+        p_value: 0.761662
+        holm_reject: false
+      - H: 8
+        n_included: 122
+        n_excluded: 685
+        mean_dir_return_pct: 0.1016
+        t_stat: 0.378
+        p_value: 0.705293
+        holm_reject: false
+      - H: 16
+        n_included: 73
+        n_excluded: 734
+        mean_dir_return_pct: 0.1281
+        t_stat: 0.335
+        p_value: 0.737643
+        holm_reject: false
+      - H: 32
+        n_included: 45
+        n_excluded: 762
+        mean_dir_return_pct: -0.2299
+        t_stat: -0.276
+        p_value: 0.782856
+        holm_reject: false
+    primary_decision: FAILS_TO_REJECT
+    non_stationarity_observed: >
+      807 events out of 2336 signal-eligible bars (2736 - 400 warmup) = 34.5% signal rate.
+      Expected ~20% (10% SHORT + 10% LONG per decile). Higher rate suggests OI level is
+      non-stationary as pre-registered: rolling percentile is clustering — many consecutive
+      bars all qualify as "extreme". This confirms the pre-registered limitation.
+decision: REJECTED

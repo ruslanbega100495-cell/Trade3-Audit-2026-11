@@ -1,0 +1,201 @@
+id: HYP-K-002
+name: Liquidity Sweep Reversal — BTCUSDT H4 (Event Study)
+date: 2026-10-24
+researcher: Ruslan
+status: BACKTEST
+
+# -----------------------------------------------------------------------
+# RESEARCH TYPE: EVENT STUDY — not a trading strategy backtest.
+# Positive result proves signal predicts direction but does NOT prove
+# net-profitable trading after fees, funding, slippage, and adverse
+# selection. A separate trading strategy registration is required before
+# any live/paper execution.
+# -----------------------------------------------------------------------
+
+hypothesis: >
+  When price temporarily exceeds a prior 20-bar rolling high (or low) within
+  a single candle's range but CLOSES BACK below (or above) that level, the
+  forward direction favors REVERSAL (opposite to the sweep direction).
+  H_null: E[direction_adjusted_return] = 0.
+
+market: Bybit USDT perpetuals
+symbol: BTCUSDT
+timeframe: H4
+data_hash: e182346101e28d26
+data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+
+# -----------------------------------------------------------------------
+# EXACT DEFINITIONS (pre-registered, must not change after seeing results)
+# -----------------------------------------------------------------------
+
+signal_definition:
+  lookback_N: 20
+  level_high: "max(high[t-20 : t])  — bar t EXCLUDED (Python slice [t-20:t])"
+  level_low:  "min(low[t-20 : t])   — bar t EXCLUDED"
+
+  short_event_at_bar_t:
+    condition_1: "high[t] > level_high[t]   (intrabar sweep of resistance)"
+    condition_2: "close[t] < level_high[t]  (closes back below — false breakout confirmed)"
+    entry: "open[t+1]  (SHORT)"
+
+  long_event_at_bar_t:
+    condition_1: "low[t] < level_low[t]     (intrabar sweep of support)"
+    condition_2: "close[t] > level_low[t]   (closes back above)"
+    entry: "open[t+1]  (LONG)"
+
+  simultaneous_signals: >
+    If both short and long conditions are satisfied on the same bar (extremely rare),
+    both events are recorded independently.
+
+return_definition:
+  short_event: direction = SHORT (-1)
+  long_event:  direction = LONG  (+1)
+  entry_ref_price: "open[t+1]"
+  exit_ref_price:  "open[t+1+H]"
+  raw_return: "(open[t+1+H] - open[t+1]) / open[t+1]"
+  direction_adjusted_return: "direction * raw_return"
+  interpretation: >
+    Positive direction_adjusted_return = price moved in the reversal direction.
+    Short and long sweep events are pooled; a single mean test covers both.
+
+overlapping_window_rule: >
+  For each horizon H, events are processed chronologically. If event j satisfies
+  t_j < t_i + H + 1 (where t_i is the last included event), event j is excluded.
+  This rule is applied per-horizon (an event excluded at H=32 may be included at H=8).
+
+boundary_rule: >
+  Event at time t included only if t+1+H <= last_index_of_split
+  (prevents lookahead across data splits).
+
+# -----------------------------------------------------------------------
+# PRIMARY TESTS (pre-specified; determines hypothesis status)
+# -----------------------------------------------------------------------
+
+primary_set:
+  N: 20
+  horizons: [4, 8, 16, 32]    # H4 candles: H=4→16h, H=8→32h, H=16→64h, H=32→128h
+  test: one-sample t-test (direction_adjusted_return, H_null: mean=0)
+  correction: Holm-Bonferroni on 4 primary tests (alpha=0.05)
+  decision_threshold: any primary test passes Holm → PROMISING; all fail → REJECTED
+
+# -----------------------------------------------------------------------
+# DATA SPLITS
+# -----------------------------------------------------------------------
+
+split:
+  train:      "2024-01-01 / 2025-04-01"    # ~1460 H4 candles
+  validation: "2025-04-01 / 2025-10-01"    # SEALED — do not use for parameter tuning
+  oos:        "2025-10-01 / 2026-07-01"    # SEALED — do not use until validation passes
+  holdout:    "2026-07-01 / 2026-10-01"    # CONSUMED by HYP-E — not a fresh holdout
+
+holdout_note: >
+  The 2026-07-01 / 2026-10-01 holdout was consumed by HYP-E (rejected, 0/8 positive
+  cells). It must NOT be presented as an untouched holdout for HYP-K-002.
+
+primary_decision_split: train
+
+# -----------------------------------------------------------------------
+# STATISTICAL DETAILS
+# -----------------------------------------------------------------------
+
+alpha: 0.05
+multiple_testing_correction: Holm-Bonferroni (4 primary tests)
+
+null_hypothesis: >
+  For each primary horizon H:
+  H_null: E[direction_adjusted_return] = 0
+  H_alt:  E[direction_adjusted_return] > 0  (reversal has positive directional edge)
+
+test_statistic: one-sample t-statistic on direction_adjusted_return values
+minimum_events: 5  # skip test if fewer than 5 non-overlapping events
+
+# -----------------------------------------------------------------------
+# EVENT STUDY LIMITATIONS (explicit)
+# -----------------------------------------------------------------------
+
+limitations:
+  - Gross returns only: no taker fees (~5.5 bps/leg on Bybit USDT perp), no funding
+  - open[t+1] as entry assumes instant fill at open — unrealistic
+  - Funding rate drain on LONG positions (~0.01%/8h = ~0.45%/month) not included
+  - No adverse selection, no slippage, no bid-ask spread cost
+  - Directional edge ≠ profitable strategy; a separate strategy registration needed
+  - p-values use normal approximation to t-distribution (valid n>=30)
+
+# -----------------------------------------------------------------------
+# RELATIONSHIP TO OTHER HYPOTHESES
+# -----------------------------------------------------------------------
+
+differs_from:
+  HYP-A-001: >
+    HYP-A requires close[t] > level_high (confirmed breakout → continuation).
+    HYP-K-002 requires high[t] > level_high AND close[t] < level_high (false breakout → reversal).
+    These are OPPOSITE economic hypotheses on the same BTCUSDT H4 data.
+  HYP-B-001: >
+    HYP-B requires a confirmed breakout THEN retest from above (continuation).
+    HYP-K-002 is an intrabar false breakout (single candle sweep and close-back → reversal).
+
+# -----------------------------------------------------------------------
+# RESULTS (filled after runs)
+# -----------------------------------------------------------------------
+
+results:
+  train:
+    run_date: "2026-10-24"
+    data_hash: "e182346101e28d26"
+    n_candles_split: 2736
+    split_range: "2024-01-01 to 2025-03-31"
+    n_events_total: 285
+    n_short_events: 158
+    n_long_events: 127
+    horizons:
+      H4:
+        n_included: 189
+        n_excluded: 96
+        mean_dir_return_pct: -0.1026
+        std_pct: 2.4287
+        t_stat: -0.581
+        p_value: 0.561308
+        holm_reject: false
+      H8:
+        n_included: 148
+        n_excluded: 137
+        mean_dir_return_pct: -0.5475
+        std_pct: 3.1719
+        t_stat: -2.100
+        p_value: 0.035749
+        holm_reject: false
+      H16:
+        n_included: 105
+        n_excluded: 180
+        mean_dir_return_pct: -0.6600
+        std_pct: 4.3034
+        t_stat: -1.572
+        p_value: 0.116043
+        holm_reject: false
+      H32:
+        n_included: 65
+        n_excluded: 220
+        mean_dir_return_pct: -0.7240
+        std_pct: 5.6891
+        t_stat: -1.026
+        p_value: 0.304897
+        holm_reject: false
+    primary_decision: "FAILS_TO_REJECT_H_null"
+    note: >
+      H=8 has raw p=0.036, which is nominally significant at alpha=0.05.
+      After Holm-Bonferroni correction on 4 tests (threshold = 0.05/4 = 0.0125),
+      it does NOT reject. All mean returns are NEGATIVE, meaning the signal shows
+      slight directional persistence (continuation) rather than reversal — opposite
+      to hypothesis. Not statistically significant.
+  validation: null
+  oos: null
+  holdout: null   # DO NOT RUN — consumed
+
+decision: REJECTED
+rejection_reason: >
+  All 4 horizons fail to reject H_null after Holm-Bonferroni correction.
+  Mean direction-adjusted returns are negative across all horizons (−0.10% to −0.72%),
+  suggesting slight continuation rather than reversal — the opposite of the hypothesis.
+  H=8 raw p=0.036 is the closest to significance but does not survive multiple-testing
+  correction (Holm threshold 0.0125). TRAIN result only; no VALIDATION authorized.
+  Hypothesis status: REJECTED on primary criterion (TRAIN, no Holm rejections).

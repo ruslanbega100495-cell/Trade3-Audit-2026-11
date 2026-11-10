@@ -1,0 +1,98 @@
+id: HYP-H-001
+name: Basis Extreme Reversal — BTCUSDT H4 (Event Study)
+date: 2026-10-25
+researcher: Ruslan
+status: BACKTEST
+
+note: >
+  Researcher-formalized operationalization of HYP-H (protocol says
+  "Basis/perp vs spot" with no signal rules). Registered before any
+  data was examined for signal quality.
+
+hypothesis: >
+  When BTCUSDT H4 basis (perp premium over spot, as %) is in extreme
+  top/bottom decile of rolling 400-bar history, forward returns
+  favor reversal. H_null: E[direction_adjusted_return] = 0.
+
+market: Bybit USDT perpetuals vs Bybit spot
+symbol: BTCUSDT
+timeframe: H4
+
+perp_data_hash: e182346101e28d26
+perp_data_file: research/datasets/raw/bybit/BTCUSDT/H4/2024-01-01_2026-09-30.json
+spot_data_hash: 952907069c60e356
+spot_data_file: research/datasets/raw/bybit/BTCUSDT/H4_spot/2024-01-01_2026-09-30.json
+
+signal_definition:
+  basis_formula: "basis[t] = (perp_close[t] - spot_close[t]) / spot_close[t] * 100"
+  alignment: "inner join on H4 open_time (minute-level prefix)"
+  rolling_window: 400
+  short_signal: "basis[t] >= percentile(basis[t-400:t], 90)"
+  long_signal:  "basis[t] <= percentile(basis[t-400:t], 10)"
+  entry_price: "open of perp candle[t+1]"
+  exit_price:  "open of perp candle[t+1+H]"
+  direction_adjusted_return: "direction * (exit - entry) / entry"
+
+primary_set:
+  horizons: [4, 8, 16, 32]
+  test: one-sample t-test
+  correction: Holm-Bonferroni (4 tests), alpha=0.05
+  decision: any Holm-reject -> PROMISING; all keep -> REJECTED
+
+split:
+  train:      "2024-01-01 / 2025-04-01"
+  validation: "2025-04-01 / 2025-10-01"
+  oos:        "2025-10-01 / 2026-07-01"
+  holdout:    "2026-07-01 / 2026-10-01"
+
+alpha: 0.05
+minimum_events: 5
+multiple_testing_correction: Holm-Bonferroni (4 primary tests)
+
+limitations:
+  - Gross returns only
+  - Spot data starts at 04:00 UTC (not 00:00 UTC); first 4 perp candles have no match
+  - rolling_window=400 is pre-registered; changing it = new hypothesis
+  - Basis measured at close; entry at next open (no lookahead)
+
+results:
+  train:
+    n_aligned_candles: 2722
+    n_events_total: 602
+    n_short: 279
+    n_long: 323
+    horizons:
+      - H: 4
+        n_included: 226
+        n_excluded: 376
+        mean_dir_return_pct: 0.0192
+        t_stat: 0.122
+        p_value: 0.902965
+        holm_reject: false
+      - H: 8
+        n_included: 154
+        n_excluded: 448
+        mean_dir_return_pct: 0.0003
+        t_stat: 0.001
+        p_value: 0.999128
+        holm_reject: false
+      - H: 16
+        n_included: 95
+        n_excluded: 507
+        mean_dir_return_pct: -0.1549
+        t_stat: -0.382
+        p_value: 0.702380
+        holm_reject: false
+      - H: 32
+        n_included: 56
+        n_excluded: 546
+        mean_dir_return_pct: -0.0621
+        t_stat: -0.071
+        p_value: 0.943066
+        holm_reject: false
+    primary_decision: FAILS_TO_REJECT
+  validation: null
+  ois: null
+  holdout: null
+
+decision: FAILS_TO_REJECT

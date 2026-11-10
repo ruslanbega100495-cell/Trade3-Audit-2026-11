@@ -1,0 +1,211 @@
+{
+  "hypothesis": "HYP-M-003",
+  "study_type": "exploratory descriptive (registered BEFORE analysis)",
+  "run_ts_utc": "2026-11-09T21:03:46.840790+00:00",
+  "cost_floor_bps_per_8h": 10,
+  "literature_reference": "MDPI 2026 (per task brief): 17% of observations >= 20 bps",
+  "ws_qc": {
+    "bybit_btc": {
+      "stream": "bybit_btc",
+      "n_records": 65486,
+      "n_funding_bearing_records": 13,
+      "first_recv_utc": "2026-11-09T04:06:51.132000+00:00",
+      "last_recv_utc": "2026-11-09T21:02:41.223000+00:00",
+      "span_hours": 16.93,
+      "max_gap_sec": 53367.8,
+      "duplicate_recv_ts": 41,
+      "funding_marks_inside_window": [
+        "2026-11-09T08:00:00+00:00",
+        "2026-11-09T16:00:00+00:00"
+      ],
+      "n_funding_marks_inside_window": 2,
+      "asof_last_known": {
+        "last_funding_rate": "0.00009163",
+        "last_obs_utc": "2026-11-09T21:02:07.806000+00:00",
+        "next_funding_time": "1794268800000"
+      }
+    },
+    "bybit_eth": {
+      "stream": "bybit_eth",
+      "n_records": 66705,
+      "n_funding_bearing_records": 39,
+      "first_recv_utc": "2026-11-09T04:06:51.136000+00:00",
+      "last_recv_utc": "2026-11-09T21:02:41.119000+00:00",
+      "span_hours": 16.93,
+      "max_gap_sec": 53367.7,
+      "duplicate_recv_ts": 51,
+      "funding_marks_inside_window": [
+        "2026-11-09T08:00:00+00:00",
+        "2026-11-09T16:00:00+00:00"
+      ],
+      "n_funding_marks_inside_window": 2,
+      "asof_last_known": {
+        "last_funding_rate": "0.0001",
+        "last_obs_utc": "2026-11-09T21:02:07.816000+00:00",
+        "next_funding_time": "1794268800000"
+      }
+    },
+    "okx_btc": {
+      "stream": "okx_btc",
+      "n_records": 48774,
+      "n_funding_bearing_records": 0,
+      "first_recv_utc": "2026-11-08T19:35:01.743000+00:00",
+      "last_recv_utc": "2026-11-09T21:02:41.344000+00:00",
+      "span_hours": 25.46,
+      "max_gap_sec": 53367.9,
+      "duplicate_recv_ts": 84,
+      "funding_marks_inside_window": [
+        "2026-11-09T00:00:00+00:00",
+        "2026-11-09T08:00:00+00:00",
+        "2026-11-09T16:00:00+00:00"
+      ],
+      "n_funding_marks_inside_window": 3,
+      "asof_last_known": null
+    },
+    "okx_eth": {
+      "stream": "okx_eth",
+      "n_records": 49318,
+      "n_funding_bearing_records": 0,
+      "first_recv_utc": "2026-11-08T19:35:01.747000+00:00",
+      "last_recv_utc": "2026-11-09T21:02:41.425000+00:00",
+      "span_hours": 25.46,
+      "max_gap_sec": 53367.9,
+      "duplicate_recv_ts": 85,
+      "funding_marks_inside_window": [
+        "2026-11-09T00:00:00+00:00",
+        "2026-11-09T08:00:00+00:00",
+        "2026-11-09T16:00:00+00:00"
+      ],
+      "n_funding_marks_inside_window": 3,
+      "asof_last_known": null
+    }
+  },
+  "ws_qc_summary": {
+    "okx_tickers_carry_no_funding_fields": true,
+    "total_funding_marks_inside_ws_window": 10,
+    "implication": "WS recording at run time covers < 1 day and contains < 10 full 00/08/16 funding marks; Bybit funding is as-of reconstructable but sparse; OKX funding is entirely absent from ticker pushes -> spread series bridged from public REST funding history (~60 days), documented below."
+  },
+  "rest_datasets": {
+    "bybit_btc": {
+      "path": "research\\datasets\\raw\\bybit\\BTCUSDT\\funding\\2026-09-10_2026-11-09.json",
+      "dataset_hash": "a25905ae6bf63ac8",
+      "record_count": 181
+    },
+    "bybit_eth": {
+      "path": "research\\datasets\\raw\\bybit\\ETHUSDT\\funding\\2026-09-10_2026-11-09.json",
+      "dataset_hash": "e225b0c34cdb39ce",
+      "record_count": 181
+    },
+    "okx_btc": {
+      "path": "research\\datasets\\raw\\okx\\BTC-USDT-SWAP\\funding\\2026-09-03_2026-11-09.json",
+      "dataset_hash": "97e8aca7494bda7e",
+      "record_count": 200
+    },
+    "okx_eth": {
+      "path": "research\\datasets\\raw\\okx\\ETH-USDT-SWAP\\funding\\2026-09-03_2026-11-09.json",
+      "dataset_hash": "c882041f7e6a75f4",
+      "record_count": 200
+    }
+  },
+  "sanity_local_bridge": {
+    "local_file_end": "2026-09-30T16:00:00+00:00",
+    "local_last_record": {
+      "timestamp_ms": 1790784000000,
+      "timestamp_iso": "2026-09-30T16:00:00+00:00",
+      "funding_rate": 5.495e-05
+    },
+    "rest_records_2026-09-30_12h_to_10-01": [
+      {
+        "timestamp_iso": "2026-09-30T16:00:00+00:00",
+        "funding_rate": 5.495e-05
+      },
+      {
+        "timestamp_iso": "2026-10-01T00:00:00+00:00",
+        "funding_rate": 4.076e-05
+      }
+    ],
+    "continuity_ok": true,
+    "note": "local file ends 2026-09-30T16:00, ~5.3 weeks before WS start -> no overlap with WS window (expected); REST bridge confirms the series continues cleanly past the local file end."
+  },
+  "sanity_ws_vs_rest": {
+    "bybit_btc": {
+      "ws_last_predicted_rate": "0.00009163",
+      "ws_last_obs_utc": "2026-11-09T21:02:07.806000+00:00",
+      "rest_last_realized_rate_before_ws_end": 5.204e-05,
+      "rest_last_realized_ts": "2026-11-09T00:00:00+00:00",
+      "sign_match": "True"
+    },
+    "bybit_eth": {
+      "ws_last_predicted_rate": "0.0001",
+      "ws_last_obs_utc": "2026-11-09T21:02:07.816000+00:00",
+      "rest_last_realized_rate_before_ws_end": -4.175e-05,
+      "rest_last_realized_ts": "2026-11-09T00:00:00+00:00",
+      "sign_match": "False"
+    }
+  },
+  "sign_convention": "Bybit/OKX perp funding convention: funding_rate > 0 -> longs pay shorts. Consistency check (sanity_ws_vs_rest): BTC WS predicted and REST last realized rate have matching sign; ETH predicted rate flipped sign vs the last realized mark (expected drift of the predicted rate within the 8h period, magnitudes same order). No data inconsistency indicated.",
+  "funding_spread_descriptive_rest_bridge": {
+    "note": "REALIZED funding spread (Bybit - OKX) on common funding marks, 2026-09 -> 2026-11-09, public REST. Preliminary/exploratory bridge: NOT the registered prospective WS series (which has < 10 marks so far). bps per 8h mark.",
+    "btc": {
+      "n_marks": 181,
+      "window_start": "2026-09-10T00:00:00+00:00",
+      "window_end": "2026-11-09T00:00:00+00:00",
+      "mean": -0.07132625309787292,
+      "median": -0.08790000000000002,
+      "std": 0.30629113018361837,
+      "p05": -0.556901913587,
+      "p95": 0.491318627044,
+      "min": -0.7320244514259999,
+      "max": 0.731415435342,
+      "share_positive": 0.34806629834254144,
+      "share_abs_gt_10bps": 0.0,
+      "share_abs_gt_20bps": 0.0,
+      "sign_stability": 0.585635359116022,
+      "mean_abs": 0.24806354006630388,
+      "autocorr_lag1": 0.2490474900340884,
+      "autocorr_lag2": 0.05839194485721615,
+      "autocorr_lag3": -0.040306378806136835,
+      "ar1_phi": 0.24948179397491874,
+      "ar1_phi_tstat": 3.4308083484468797,
+      "half_life_marks": 0.49925272932821946,
+      "half_life_days": 0.16641757644273983,
+      "adf_tstat_const_5lags": -5.14547367721681,
+      "adf_5pct_cv_approx": -2.86,
+      "adf_reject_unit_root_5pct": true
+    },
+    "eth": {
+      "n_marks": 181,
+      "window_start": "2026-09-10T00:00:00+00:00",
+      "window_end": "2026-11-09T00:00:00+00:00",
+      "mean": -0.05142417384422099,
+      "median": -0.023397520932000003,
+      "std": 0.35870827720510884,
+      "p05": -0.6182,
+      "p95": 0.513014357659,
+      "min": -0.977752458701,
+      "max": 0.9236313634129999,
+      "share_positive": 0.43646408839779005,
+      "share_abs_gt_10bps": 0.0,
+      "share_abs_gt_20bps": 0.0,
+      "sign_stability": 0.5303867403314917,
+      "mean_abs": 0.2858369868531823,
+      "autocorr_lag1": 0.341402695887309,
+      "autocorr_lag2": 0.06490166320419824,
+      "autocorr_lag3": 0.01867166184382358,
+      "ar1_phi": 0.3440212316860225,
+      "ar1_phi_tstat": 4.8460443636333705,
+      "half_life_marks": 0.649590875841263,
+      "half_life_days": 0.21653029194708764,
+      "adf_tstat_const_5lags": -4.5820317205140695,
+      "adf_5pct_cv_approx": -2.86,
+      "adf_reject_unit_root_5pct": true
+    }
+  },
+  "marks_maturity_math": {
+    "marks_per_day": 3,
+    "marks_required": 200,
+    "days_needed_from_recording_start": 67,
+    "ws_recording_start_utc": "2026-11-08T19:35:01.743000+00:00",
+    "earliest_200_marks_date_utc": "2027-01-14T19:35:01.743000+00:00"
+  }
+}

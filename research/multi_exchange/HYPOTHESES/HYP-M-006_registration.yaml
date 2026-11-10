@@ -1,0 +1,49 @@
+id: HYP-M-006
+name: Open-Interest Delta Lead — BTCUSDT (Bybit OI -> forward returns)
+date: 2026-11-09
+researcher: Kimi research team (idea AGENT-09/S-01, source Tran et al. 2026)
+status: BACKTEST
+status_reason: "Registered BEFORE analysis (trade3 protocol). Exploratory TRAIN-only pass; confirmatory only on prospective data."
+hypothesis: >
+  The CHANGE in open interest (ΔOI, normalized by turnover/volume) predicts
+  short-horizon forward returns differently from price momentum alone: rising
+  OI into rising price = crowded longs (continuation short-term, reversal at
+  longer horizons); rising OI into falling price = short buildup. Academic
+  support: Tran et al. 2026 (OI-Δ strongest predictor of 8h crashes, OOS AUROC
+  0.76); cross-venue OI niche is academically empty.
+  H_null: E[forward_return | ΔOI quartile] is identical across quartiles at all
+  horizons tested (1/4/24h), after costs.
+differs_from:
+  HYP-K-007/008: >
+    K-007 tested absolute OI level extremes (rejected: non-stationarity, t~0.3).
+    K-008 tested breakout + falling OI (rejected). M-006 tests NORMALIZED OI
+    CHANGE (ΔOI/turnover) as a continuous predictive signal across all regimes,
+    not level extremes at the tail.
+  HYP-F-001: v2-era Price+OI mixed result; not tested in V3 registry on clean
+    data with normalized delta; M-006 supersedes with explicit normalization
+    and multiple horizons.
+data: >
+  Bybit BTCUSDT OI H4 2024-01-01->2026-09-30 (local, hash eb1a3044ec0e3e35,
+  6024 bars) + H4 OHLCV (hash e182346101e28d26, 6020 bars). Inner join on
+  timestamps, no interpolation.
+signal:
+  type: exploratory event/panel study (descriptive first)
+  construction: "delta_oi_norm[t] = (OI[t] - OI[t-1]) / turnover[t]  (turnover = quote volume of the bar)"
+  horizons_hours: [1, 4, 24]   # H4 bars: forward 1, 1, 6 bars
+  analysis: "quartiles of delta_oi_norm on TRAIN; forward returns per quartile; t-tests; interaction with price sign"
+  kill_criterion: "|t| < 3 on every quartile-contrast at every horizon, or
+    effect size < 2x round-trip cost (21 bps)"
+cost_model:
+  taker_fee_pct: 0.055
+  slippage_pct: 0.05
+  round_trip_note: "one H4 entry + exit = 21 bps; a tradable signal must clear 42 bps expected move"
+split:
+  train: "2024-01-01 / 2025-04-01"
+  note: >
+    Exploratory single pass on TRAIN (PERIOD_MAP: no clean historical periods
+    remain for confirmatory). Any positive result is a candidate for
+    prospective validation on post-2026-10-01 data only, pre-registered
+    separately BEFORE viewing prospective outcomes.
+results: null
+decision: null
+rejection_reason: null
